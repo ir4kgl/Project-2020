@@ -33,7 +33,7 @@ class Givens_rotator {
     Scalar cos = find_cos(kept, zeroed);
     Scalar sin = find_sin(kept, zeroed);
 
-    rotary_matrix << cos, sin, -sin, cos;
+    rotary_matrix_ << cos, sin, -sin, cos;
   }
 
   void transform_left(MatrixDynamic* out) const {
@@ -41,7 +41,7 @@ class Givens_rotator {
     MatrixDynamic& old = *out;
 
     assert(old.rows() == 2);
-    old = rotary_matrix.transpose() * old;
+    old = rotary_matrix_.transpose() * old;
   }
 
   void transform_right(MatrixDynamic* out) const {
@@ -49,24 +49,24 @@ class Givens_rotator {
     MatrixDynamic& old = *out;
 
     assert(old.cols() == 2);
-    old *= rotary_matrix;
+    old *= rotary_matrix_;
   }
 
   void transform_left(BlockDynamic old) const {
     assert(old.rows() == 2);
-    old = rotary_matrix.transpose() * old;
+    old = rotary_matrix_.transpose() * old;
   }
 
   void transform_right(BlockDynamic old) const {
     assert(old.cols() == 2);
-    old *= rotary_matrix;
+    old *= rotary_matrix_;
   }
 
-  const Scalar& cos() const { return rotary_matrix(0, 0); }
-  const Scalar& sin() const { return rotary_matrix(0, 1); }
+  const Scalar& cos() const { return rotary_matrix_(0, 0); }
+  const Scalar& sin() const { return rotary_matrix_(0, 1); }
 
  private:
-  Matrix2 rotary_matrix;
+  Matrix2 rotary_matrix_;
 };
 
 };  // namespace Givens_rotation
