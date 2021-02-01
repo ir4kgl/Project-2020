@@ -1,359 +1,334 @@
-#include <algorithm>
 #include <cmath>
+#include <type_traits>
 
-#include "Givens_rotation.h"
-#include "Hessenberg_reduction.h"
+#include "Eigen/Dense"
+#include "Math_tools.h"
 
-namespace General_QR {
+namespace QR_algorithm {
 
-using namespace Householder_reflection;
-using namespace General_reduction;
+using namespace Math_tools;
 
-using namespace Eigen;
+enum class ResultMode : unsigned char { Partial = 0, Comlete = 1 };
 
-template <typename Scalar>
-class Schur_decomposition {
-  static_assert(std::is_arithmetic_v<Scalar>,
-                "Scalar must be arithmetic type!");
+enum class MatrixMode : unsigned char { Symmetric = 0, Classic = 1 };
 
-  using Reflector = Householder_reflector<Scalar>;
-  using Hessenberg = Hessenberg_form<Scalar>;
-
-  using MatrixDynamic = Matrix<Scalar, -1, -1>;
-  using BlockDynamic = Block<Matrix<Scalar, -1, -1>>;
-  using Vector2 = Matrix<Scalar, 2, 1>;
-  using Vector3 = Matrix<Scalar, 3, 1>;
-  using Matrix3 = Matrix<Scalar, 3, 3>;
-
- public:
-  Schur_decomposition(Scalar precision, const MatrixDynamic& input,
-                      MatrixDynamic* schur_vectors = NULL) {
-    assert(precision >= 0.);
-    assert(input.rows() == input.cols());
-
-    init(input, schur_vectors);
-
-    run_algorithm(precision, schur_vectors);
-  }
-
-  MatrixDynamic* get_triangular() { return &triangular_; }
-
- private:
-  MatrixDynamic triangular_;
-
-  void init(const MatrixDynamic& input, MatrixDynamic* schur_vectors) {
-    Hessenberg reduced(input, schur_vectors);
-    triangular_ = *reduced.get();
-  }
-
-  Matrix3 find_matching(int index) {
-    Scalar trace = triangular_.block(index - 1, index - 1, 2, 2).trace();
-    Scalar det = triangular_.block(index - 1, index - 1, 2, 2).determinant();
-
-    BlockDynamic corner = triangular_.topLeftCorner(3, 3);
-
-    Matrix3 temp = corner * corner - trace * corner + det * Matrix3::Identity();
-    return temp;
-  }
-
-  void process_column(int corner, int step, const Vector3& column,
-                      MatrixDynamic* schur_vectors) {
-    int full_size = triangular_.rows();
-    Reflector reflector(column);
-
-    reflector.transform_left(triangular_(
-        seq(step + 1, step + 3), seq(std::max(0, step), full_size - 1)));
-
-    reflector.transform_right(triangular_(seq(0, std::min(corner, step + 4)),
-                                          seq(step + 1, step + 3)));
-
-    if (schur_vectors) {
-      reflector.transform_right(
-          (*schur_vectors)(seq(0, full_size - 1), seq(step + 1, step + 3)));
-    }
-  }
-
-  void slide_bulge(int corner, int step, Vector3* out) {
-    assert(out);
-    Vector3& bulge_column = *out;
-
-    int next_col = step + 1;
-
-    bulge_column(0) = triangular_(next_col + 1, next_col);
-    bulge_column(1) = triangular_(next_col + 2, next_col);
-
-    if (next_col + 3 <= corner) {
-      bulge_column(2) = triangular_(next_col + 3, next_col);
-    }
-  }
-
-  void process_tail(int corner, MatrixDynamic* schur_vectors) {
-    int full_size = triangular_.rows();
-    int last_col = corner - 2;
-
-    Vector2 bulge_column =
-        triangular_(seq(last_col + 1, last_col + 2), seq(last_col, last_col));
-
-    Reflector reflector(bulge_column);
-
-    reflector.transform_left(
-        triangular_(seq(corner - 1, corner), seq(corner - 2, full_size - 1)));
-
-    reflector.transform_right(
-        triangular_(seq(0, corner), seq(corner - 1, corner)));
-
-    if (schur_vectors) {
-      reflector.transform_right(
-          (*schur_vectors)(seq(0, full_size - 1), seq(corner - 1, corner)));
-    }
-  }
-
-  void remove_bulge(int corner, MatrixDynamic* schur_vectors) {
-    if (triangular_.rows() > 3) {
-      Vector3 bulge_colummn = triangular_(seq(1, 3), seq(0, 0));
-
-      for (int step = 0; step <= corner - 3; ++step) {
-        process_column(corner, step, bulge_colummn, schur_vectors);
-        slide_bulge(corner, step, &bulge_colummn);
-      }
-    }
-
-    process_tail(corner, schur_vectors);
-  }
-
-  void implicit_step(int corner, MatrixDynamic* schur_vectors) {
-    Vector3 matching_column = find_matching(corner).col(0);
-
-    int step = -1;
-    process_column(corner, step, matching_column, schur_vectors);
-    remove_bulge(corner, schur_vectors);
-  }
-
-  void deflate(Scalar precision, int* out) {
-    assert(out);
-    int& corner = *out;
-
-    int first = corner - 1;
-    int last = corner;
-
-    Scalar& first_deflated_item = triangular_(last, first);
-
-    if (std::abs(first_deflated_item) < precision) {
-      first_deflated_item = 0.;
-      --corner;
-      return;
-    }
-
-    --first;
-    --last;
-
-    Scalar& next_deflated_item = triangular_(last, first);
-
-    if (std::abs(next_deflated_item) < precision) {
-      next_deflated_item = 0.;
-      corner -= 2;
-    }
-  }
-
-  void run_algorithm(Scalar precision, MatrixDynamic* schur_vectors) {
-    int full_size = triangular_.rows();
-    int actual_corner = full_size - 1;
-
-    while (actual_corner >= 2) {
-      implicit_step(actual_corner, schur_vectors);
-      deflate(precision, &actual_corner);
-    }
-  }
+template <class Scalar>
+struct Tridiagonal_symmetric {
+  using MajorDiagonal = Eigen::Matrix<Scalar, -1, 1>;
+  using SideDiagonal = Eigen::Matrix<Scalar, -1, 1>;
+  MajorDiagonal major;
+  SideDiagonal side;
 };
 
-};  // namespace General_QR
-
-namespace Symmetric_QR {
-
-using namespace Eigen;
-using namespace Symmetric_reduction;
-using namespace Givens_rotation;
-
 template <typename Scalar>
-class Schur_decomposition {
+class Algorithm {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
-  using Tridiagonal = Tridiagonal_form<Scalar>;
+  using Precision = Scalar;
+  using VectorDynamic = Eigen::Matrix<Scalar, -1, 1>;
+  using MatrixDynamic = Eigen::Matrix<Scalar, -1, -1>;
+  using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+  using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
+  using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+  using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using SymmetricMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using SchurForm = Eigen::Matrix<Scalar, -1, -1>;
+  using Eigenvalues = Eigen::Matrix<Scalar, -1, 1>;
+  using TridiagonalSymmetric = Tridiagonal_symmetric<Scalar>;
+  using Reflector = Householder_reflector<Scalar>;
   using Rotator = Givens_rotator<Scalar>;
 
-  using MatrixDynamic = Matrix<Scalar, -1, -1>;
-  using VectorDynamic = Matrix<Scalar, -1, 1>;
-
  public:
-  Schur_decomposition(Scalar precision, const MatrixDynamic& input,
-                      MatrixDynamic* eigenvectors = NULL) {
-    assert(precision >= 0.);
-    assert(input.rows() == input.cols());
-
-    Tridiagonal diagonals(input, eigenvectors);
-    run_algorithm(precision, &diagonals, eigenvectors);
+  Algorithm(Precision precision) : precision_(precision) {
+    assert(precision >= 0);
   }
 
-  VectorDynamic* get_eigenvalues() { return &eigenvalues_; }
+  void run_classic(const SquareMatrix& data, SchurForm* out,
+                   UnitaryMatrix* unitary) {
+    assert(out);
+    assert(unitary);
+    p_schur_form_ = out;
+    p_unitary_ = unitary;
+    p_eigevalues_ = nullptr;
+    p_diagonals_ = nullptr;
+    run<ResultMode::Comlete, MatrixMode::Classic>(data);
+  }
+
+  void run_classic(const SquareMatrix& data, SchurForm* out) {
+    assert(out);
+    p_schur_form_ = out;
+    p_unitary_ = nullptr;
+    p_eigevalues_ = nullptr;
+    p_diagonals_ = nullptr;
+    run<ResultMode::Partial, MatrixMode::Classic>(data);
+  }
+
+  void run_symmetric(const SymmetricMatrix& data, Eigenvalues* eigenvalues,
+                     UnitaryMatrix* unitary) {
+    assert(eigenvalues);
+    assert(unitary);
+    p_eigevalues_ = eigenvalues;
+    p_unitary_ = unitary;
+    run<ResultMode::Comlete, MatrixMode::Symmetric>(data);
+  }
+
+  void run_symmetric(const SymmetricMatrix& data, Eigenvalues* eigenvalues) {
+    assert(eigenvalues);
+    p_eigevalues_ = eigenvalues;
+    p_unitary_ = nullptr;
+    run<ResultMode::Partial, MatrixMode::Symmetric>(data);
+  }
+
+  void set_precision(Precision precision) {
+    assert(precision >= 0);
+    precision_ = precision;
+  }
+
+  Precision get_precision() const { return precision_; }
 
  private:
-  VectorDynamic eigenvalues_;
-
-  MatrixDynamic get_square(int column, const Tridiagonal& diagonals) {
-    int first = column;
-    int last = column + 1;
-
-    MatrixDynamic temp(2, 2);
-    temp << diagonals.major(first), diagonals.side(last), diagonals.side(last),
-        diagonals.major(last);
-
-    return temp;
-  }
-
-  void put_square(const MatrixDynamic& square, int column, Tridiagonal* out) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    assert(square.rows() == 2);
-    assert(square.cols() == 2);
-    assert(std::abs(square(0, 1) - square(1, 0)) < 1e-6);
-
-    int first = column;
-    int last = column + 1;
-
-    *diagonals.major(first) = square(0, 0);
-    *diagonals.major(last) = square(1, 1);
-    *diagonals.side(last) = square(0, 1);
-  }
-
-  void update_vectors(int column, const Rotator& rotator, MatrixDynamic* out) {
-    if (out) {
-      MatrixDynamic& vectors = *out;
-      rotator.transform_right(vectors(all, seq(column, column + 1)));
+  template <ResultMode RMode, MatrixMode MMode>
+  void run(const SquareMatrix& data) {
+    assert(data.rows() == data.cols());
+    full_size_ = data.rows();
+    SchurForm schur_form_temp;
+    TridiagonalSymmetric diagonals_temp;
+    if constexpr (MMode == MatrixMode::Symmetric) {
+      p_schur_form_ = &schur_form_temp;
+      p_diagonals_ = &diagonals_temp;
     }
-  }
-
-  void process_column(int column, const Rotator& rotator, Tridiagonal* out,
-                      MatrixDynamic* eigenvectors) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    MatrixDynamic square = get_square(column, diagonals);
-
-    rotator.transform_left(&square);
-    rotator.transform_right(&square);
-
-    put_square(square, column, &diagonals);
-
-    update_vectors(column, rotator, eigenvectors);
-  }
-
-  void remove_bulge(int corner, Scalar bulge, Tridiagonal* out,
-                    MatrixDynamic* eigenvectors) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    for (int column = 1; column <= corner - 1; ++column) {
-      Scalar kept = *diagonals.side(column);
-      Scalar zeroed = bulge;
-
-      Rotator rotator(kept, zeroed);
-
-      *diagonals.side(column) = rotator.cos() * kept - rotator.sin() * zeroed;
-      process_column(column, rotator, &diagonals, eigenvectors);
-
-      if (column != corner - 1) {
-        bulge = -*diagonals.side(column + 2) * rotator.sin();
-        *diagonals.side(column + 2) *= rotator.cos();
-      }
+    *p_schur_form_ = data;
+    if constexpr (RMode == ResultMode::Comlete) {
+      *p_unitary_ = UnitaryMatrix::Identity(full_size_, full_size_);
     }
-  }
-
-  Scalar wilkinson_shift(Scalar precision, int corner,
-                         const Tridiagonal& diagonals) {
-    int first = corner - 1;
-    int last = corner;
-
-    Scalar delta = (diagonals.major(first) - diagonals.major(last)) / 2.;
-    Scalar hypot = std::hypot(delta, diagonals.side(last));
-
-    if (delta > precision) {
-      return diagonals.major(last) -
-             std::pow(diagonals.side(last), 2) / (delta + hypot);
-    }
-
-    if (delta < -precision) {
-      return diagonals.major(last) -
-             std::pow(diagonals.side(last), 2) / (delta - hypot);
-    }
-
-    return diagonals.major(last) - std::abs(diagonals.side(last));
-  }
-
-  void implicit_step(Scalar precision, int corner, Tridiagonal* out,
-                     MatrixDynamic* eigenvectors) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    Scalar shift = wilkinson_shift(precision, corner, diagonals);
-
-    Scalar kept = *diagonals.major(0) - shift;
-    Scalar zeroed = *diagonals.side(1);
-    Rotator rotator(kept, zeroed);
-
-    process_column(0, rotator, &diagonals, eigenvectors);
-
-    Scalar bulge = -*diagonals.side(2) * rotator.sin();
-    *diagonals.side(2) *= rotator.cos();
-
-    remove_bulge(corner, bulge, &diagonals, eigenvectors);
-  }
-
-  void process_smallest_corner(Tridiagonal* out, MatrixDynamic* eigenvectors) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    Scalar kept = *diagonals.major(0);
-    Scalar zeroed = *diagonals.side(1);
-
-    Rotator rotator(kept, zeroed);
-
-    int column = 0;
-    process_column(column, rotator, &diagonals, eigenvectors);
-  }
-
-  void deflate(Scalar precision, const Tridiagonal& diagonals, int* out) {
-    assert(out);
-    int& corner = *out;
-
-    Scalar deflated_item = diagonals.side(corner);
-
-    if (std::abs(deflated_item) < precision) {
-      --corner;
-    }
-  }
-
-  void run_algorithm(Scalar precision, Tridiagonal* out,
-                     MatrixDynamic* eigenvectors) {
-    assert(out);
-    Tridiagonal& diagonals = *out;
-
-    int full_size = diagonals.major_diagonal()->rows();
-    int actual_corner = full_size - 1;
-
-    while (actual_corner > 0) {
-      if (actual_corner != 1) {
-        implicit_step(precision, actual_corner, &diagonals, eigenvectors);
+    reduce_to_hessenberg_form<RMode, MMode>();
+    actual_corner_ = full_size_ - 1;
+    while (actual_corner_ >= 2) {
+      if constexpr (MMode == MatrixMode::Classic) {
+        implicit_step_classic<RMode>();
       } else {
-        process_smallest_corner(&diagonals, eigenvectors);
+        implicit_step_symmetric<RMode>();
       }
-
-      deflate(precision, diagonals, &actual_corner);
+      deflate<MMode>();
     }
-
-    eigenvalues_ = *diagonals.major_diagonal();
+    if constexpr (MMode == MatrixMode::Symmetric) {
+      process_smallest_corner<RMode>();
+    }
   }
+
+  template <ResultMode RMode, MatrixMode MMode>
+  void reduce_to_hessenberg_form() {
+    Reflector reflector;
+    for (step_ = 0; step_ < full_size_ - 2; ++step_) {
+      int col = step_;
+      int rows = full_size_ - step_ - 1;
+      reflector = Reflector(p_schur_form_->col(col).bottomRows(rows));
+      if constexpr (MMode == MatrixMode::Classic) {
+        reduce_column_classic(reflector);
+      } else {
+        reduce_column_symmetric(reflector);
+      }
+      if constexpr (RMode == ResultMode::Comlete) {
+        reflector.reflect_right(
+            p_unitary_->bottomRightCorner(full_size_, full_size_ - step_ - 1));
+      }
+    }
+    if constexpr (MMode == MatrixMode::Symmetric) {
+      extract_diagonals();
+    }
+  }
+
+  void reduce_column_classic(const Reflector& reflector) {
+    int zeroed_elems = full_size_ - step_ - 1;
+    reflector.reflect_left(
+        p_schur_form_->bottomRightCorner(zeroed_elems, full_size_ - step_));
+    reflector.reflect_right(
+        p_schur_form_->bottomRightCorner(full_size_, zeroed_elems));
+  }
+
+  void reduce_column_symmetric(const Reflector& reflector) {
+    int zeroed_elems = full_size_ - step_ - 1;
+    VectorDynamic first = reflector.direction();
+    VectorDynamic second =
+        p_schur_form_->bottomRightCorner(full_size_, zeroed_elems) * first;
+    second.tail(zeroed_elems) -=
+        first * (first.transpose() * second.tail(zeroed_elems));
+    second *= 2;
+    MatrixDynamic tmp = first * second.transpose();
+    p_schur_form_->bottomLeftCorner(zeroed_elems, full_size_) -= tmp;
+    p_schur_form_->topRightCorner(full_size_, zeroed_elems) -= tmp.transpose();
+  }
+
+  template <ResultMode RMode>
+  void implicit_step_classic() {
+    init<RMode>();
+    int width = 3;
+    Reflector reflector;
+    for (; step_ <= actual_corner_ - 3; ++step_) {
+      reflector = Reflector(p_schur_form_->block(step_ + 1, step_, width, 1));
+      single_step<RMode>(reflector, width);
+    }
+    width = 2;
+    reflector = Reflector(p_schur_form_->block(step_ + 1, step_, width, 1));
+    single_step<RMode>(reflector, width);
+  }
+
+  template <ResultMode RMode>
+  void implicit_step_symmetric() {
+    Scalar bulge;
+    init<RMode>(&bulge);
+    Rotator rotator;
+    for (; step_ <= actual_corner_ - 1; ++step_) {
+      Scalar x = p_diagonals_->side(step_);
+      Scalar y = bulge;
+      rotator = Rotator(x, y);
+      single_step<RMode>(rotator);
+      p_diagonals_->side(step_) = rotator.cos() * x + rotator.sin() * y;
+      if (step_ != actual_corner_ - 1) {
+        bulge = p_diagonals_->side(step_ + 2) * rotator.sin();
+        p_diagonals_->side(step_ + 2) *= rotator.cos();
+      }
+    }
+  }
+
+  template <MatrixMode MMode>
+  void deflate() {
+    int first = actual_corner_ - 1;
+    int last = actual_corner_;
+    Scalar* deflated_item;
+    if constexpr (MMode == MatrixMode::Classic) {
+      deflated_item = &(*p_schur_form_)(last, first);
+    } else {
+      deflated_item = &p_diagonals_->side(actual_corner_);
+    }
+    if (std::abs(*deflated_item) < precision_) {
+      *deflated_item = 0;
+      --actual_corner_;
+      return;
+    }
+    if constexpr (MMode == MatrixMode::Classic) {
+      --first;
+      --last;
+      deflated_item = &(*p_schur_form_)(last, first);
+      if (std::abs(*deflated_item) < precision_) {
+        *deflated_item = 0;
+        actual_corner_ -= 2;
+      }
+    }
+  }
+
+  template <ResultMode RMode>
+  void init() {
+    Reflector reflector;
+    step_ = -1;
+    int width = 3;
+    reflector = Reflector(find_matching_column());
+    single_step<RMode>(reflector, width);
+    ++step_;
+  }
+
+  template <ResultMode RMode>
+  void init(Scalar* bulge) {
+    Rotator rotator;
+    step_ = 0;
+    Scalar shift = wilkinson_shift();
+    rotator = Rotator(p_diagonals_->major(0) - shift, p_diagonals_->side(1));
+    single_step<RMode>(rotator);
+    *bulge = p_diagonals_->side(2) * rotator.sin();
+    p_diagonals_->side(2) *= rotator.cos();
+    ++step_;
+  }
+
+  Scalar wilkinson_shift() {
+    int first = actual_corner_ - 1;
+    int last = actual_corner_;
+    Scalar delta = p_diagonals_->major(first) - p_diagonals_->major(last);
+    Scalar hypot = std::hypot(delta / 2, p_diagonals_->side(last));
+    if (delta > 0) {
+      return p_diagonals_->major(last) -
+             std::pow(p_diagonals_->side(last), 2) / (delta / 2 + hypot);
+    }
+    if (delta < 0) {
+      return p_diagonals_->major(last) -
+             std::pow(p_diagonals_->side(last), 2) / (delta / 2 - hypot);
+    }
+    return p_diagonals_->major(last) - std::abs(p_diagonals_->side(last));
+  }
+
+  template <ResultMode RMode>
+  void single_step(const Reflector& reflector, int width) {
+    if (step_ >= 0) {
+      reflector.reflect_left(
+          p_schur_form_->block(step_ + 1, step_, width, full_size_ - step_));
+    } else {
+      reflector.reflect_left(
+          p_schur_form_->block(step_ + 1, 0, width, full_size_));
+    }
+    reflector.reflect_right(p_schur_form_->block(
+        0, step_ + 1, std::min(actual_corner_, step_ + 4) + 1, width));
+    if constexpr (RMode == ResultMode::Comlete) {
+      reflector.reflect_right(
+          p_unitary_->block(0, step_ + 1, full_size_, width));
+    }
+  }
+
+  template <ResultMode RMode>
+  void single_step(const Rotator& rotator) {
+    int first = step_;
+    int last = step_ + 1;
+    MatrixDynamic square(2, 2);
+    square << p_diagonals_->major(first), p_diagonals_->side(last),
+        p_diagonals_->side(last), p_diagonals_->major(last);
+    rotator.rotate_left(&square);
+    rotator.rotate_right(&square);
+    p_diagonals_->major(first) = square(0, 0);
+    p_diagonals_->major(last) = square(1, 1);
+    p_diagonals_->side(last) = square(0, 1);
+    if constexpr (RMode == ResultMode::Comlete) {
+      rotator.rotate_right(p_unitary_->block(0, step_, full_size_, 2));
+    }
+  }
+
+  void extract_diagonals() {
+    p_diagonals_->major = p_schur_form_->diagonal(0);
+    p_diagonals_->side.resize(full_size_);
+    p_diagonals_->side.tail(full_size_ - 1) = p_schur_form_->diagonal(1);
+    p_diagonals_->side(0) = 0;
+  }
+
+  Vector3 find_matching_column() {
+    int start = actual_corner_ - 1;
+    Scalar trace = p_schur_form_->block(start, start, 2, 2).trace();
+    Scalar det = p_schur_form_->block(start, start, 2, 2).determinant();
+    BlockDynamic corner = p_schur_form_->topLeftCorner(3, 3);
+    Matrix3 tmp = corner * corner - trace * corner + det * Matrix3::Identity();
+    return tmp.col(0);
+  }
+
+  template <ResultMode RMode>
+  void process_smallest_corner() {
+    MatrixDynamic square(2, 2);
+    square << p_diagonals_->major(0), p_diagonals_->side(1),
+        p_diagonals_->side(1), p_diagonals_->major(1);
+    Scalar trace = square.trace();
+    Scalar det = square.determinant();
+    Scalar eigenvalue = (trace + std::sqrt(std::pow(trace, 2) - 4 * det)) / 2;
+    Rotator rotator(p_diagonals_->major(0) - eigenvalue, p_diagonals_->side(1));
+    step_ = 0;
+    single_step<RMode>(rotator);
+    *p_eigevalues_ = p_diagonals_->major;
+  }
+
+  Precision precision_;
+  SchurForm* p_schur_form_;
+  UnitaryMatrix* p_unitary_;
+  Eigenvalues* p_eigevalues_;
+  TridiagonalSymmetric* p_diagonals_;
+  int full_size_;
+  int actual_corner_;
+  int step_;
 };
 
-};  // namespace Symmetric_QR
+};  // namespace QR_algorithm
