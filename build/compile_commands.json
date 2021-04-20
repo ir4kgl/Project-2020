@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/ira_goloborodko/Desktop/Course work/project-2020/build",
-  "command": "/usr/bin/g++-9     -std=c++2a -g   -o CMakeFiles/QR.dir/main.cpp.o -c \"/home/ira_goloborodko/Desktop/Course work/project-2020/main.cpp\"",
-  "file": "/home/ira_goloborodko/Desktop/Course work/project-2020/main.cpp"
-}
-]

@@ -1,7 +1,7 @@
 #include <cmath>
 #include <type_traits>
 
-#include "eigen/Eigen/Dense"
+#include "Eigen/Dense"
 
 namespace Math_tools {
 
