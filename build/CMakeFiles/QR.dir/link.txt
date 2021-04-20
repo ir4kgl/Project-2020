@@ -1,0 +1,1 @@
+/usr/bin/g++-9   -std=c++2a -g  -rdynamic CMakeFiles/QR.dir/main.cpp.o  -o QR 
