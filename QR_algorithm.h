@@ -1,8 +1,8 @@
 #include <cmath>
 #include <type_traits>
 
-#include "Eigen/Dense"
 #include "Math_tools.h"
+#include "eigen/Eigen/Dense"
 
 namespace QR_algorithm {
 
