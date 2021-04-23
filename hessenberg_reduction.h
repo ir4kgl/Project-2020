@@ -29,6 +29,7 @@ class Hessenberg_reduction {
     reflector_ = {};
   }
 
+ private:
   void reduce_column() {
     reflector_.reflect_left(
         p_hessenberg_form_->bottomRightCorner(rows_cnt_, full_size_ - col_));
@@ -38,7 +39,6 @@ class Hessenberg_reduction {
         p_backtrace_matrix_->bottomRightCorner(full_size_, rows_cnt_));
   }
 
- private:
   MatrixDynamic* p_hessenberg_form_;
   UnitaryMatrix* p_backtrace_matrix_;
   HouseholderReflector reflector_;
