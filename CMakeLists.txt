@@ -4,9 +4,11 @@ project(QR VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+add_library(test_find_angle tests/test_find_angle.cpp)
 add_library(tests tests/tests.cpp)
 add_executable(exec main.cpp)
 
+target_link_libraries(tests test_find_angle)
 target_link_libraries(exec tests)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a")
