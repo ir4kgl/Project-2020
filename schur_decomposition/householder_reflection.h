@@ -1,7 +1,7 @@
 #include <cmath>
 #include <type_traits>
 
-#include "eigen/Eigen/Dense"
+#include "../eigen/Eigen/Dense"
 
 namespace householder_reflection {
 
