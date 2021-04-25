@@ -4,7 +4,7 @@ project(QR VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
-add_library(tests tests.cpp)
+add_library(tests tests/tests.cpp)
 add_executable(exec main.cpp)
 
 target_link_libraries(exec tests)
