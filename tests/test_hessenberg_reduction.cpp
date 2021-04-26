@@ -20,7 +20,7 @@ static constexpr const int matrix_size = 100;
 bool simple_check() {
   MatrixXd data = MatrixXd::Random(matrix_size, matrix_size);
   MatrixXd old_data = data;
-  MatrixXd backtrace = MatrixXd::Identity(matrix_size, matrix_size);
+  MatrixXd backtrace;
 
   HessenbergReduction<double> reduction;
   reduction.run(&data, &backtrace);

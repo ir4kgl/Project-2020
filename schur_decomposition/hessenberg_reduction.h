@@ -4,22 +4,23 @@
 namespace hessenberg_reduction {
 
 using householder_reflection::HouseholderReflector;
+using std::is_arithmetic_v;
 
 template <typename Scalar>
 class HessenbergReduction {
-  static_assert(std::is_arithmetic_v<Scalar>,
-                "Scalar must be arithmetic type!");
+  static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
 
-  using MatrixDynamic = Eigen::Matrix<Scalar, -1, -1>;
+  using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
 
  public:
-  void run(MatrixDynamic* data, UnitaryMatrix* backtrace) {
+  void run(SquareMatrix* data, UnitaryMatrix* backtrace) {
     assert(data->rows() == data->cols());
     size_ = data->rows();
     p_hessenberg_form_ = data;
     p_backtrace_matrix_ = backtrace;
 
+    *p_backtrace_matrix_ = UnitaryMatrix::Identity(size_, size_);
     for (col_ = 0; col_ < size_ - 2; ++col_) {
       zeroed_counter_ = size_ - col_ - 1;
       reflector_ = HouseholderReflector<Scalar>(
@@ -39,7 +40,7 @@ class HessenbergReduction {
         p_backtrace_matrix_->bottomRightCorner(size_, zeroed_counter_));
   }
 
-  MatrixDynamic* p_hessenberg_form_;
+  SquareMatrix* p_hessenberg_form_;
   UnitaryMatrix* p_backtrace_matrix_;
   HouseholderReflector<Scalar> reflector_;
 
