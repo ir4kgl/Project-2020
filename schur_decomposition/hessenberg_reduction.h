@@ -15,7 +15,7 @@ class HessenbergReduction {
 
  public:
   void run(MatrixDynamic* data, UnitaryMatrix* backtrace) {
-    assert(data.rows() == data.cols());
+    assert(data->rows() == data->cols());
     size_ = data->rows();
     p_hessenberg_form_ = data;
     p_backtrace_matrix_ = backtrace;
