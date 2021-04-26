@@ -4,7 +4,7 @@ project(QR VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
-set(TestSources tests/test_find_angle.cpp  tests/test_householder_reflector.cpp  tests/test_givens_rotator.cpp tests/tests.cpp)
+set(TestSources tests/test_find_angle.cpp  tests/test_householder_reflector.cpp  tests/test_givens_rotator.cpp tests/test_hessenberg_reduction.cpp tests/tests.cpp)
 
 add_executable(exec main.cpp "${TestSources}")
 
