@@ -6,7 +6,7 @@
 namespace householder_reflection {
 
 template <typename Scalar>
-class Householder_reflector {
+class HouseholderReflector {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
@@ -14,9 +14,9 @@ class Householder_reflector {
   using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
 
  public:
-  Householder_reflector() = default;
+  HouseholderReflector() = default;
 
-  Householder_reflector(VectorDynamic vector) : direction_(std::move(vector)) {
+  HouseholderReflector(VectorDynamic vector) : direction_(std::move(vector)) {
     int size = direction_.rows();
     assert(size >= 2);
     if (direction_(0) > 0) {

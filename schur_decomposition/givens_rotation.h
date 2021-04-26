@@ -19,7 +19,7 @@ AngleData<Scalar> find_angle(Scalar x, Scalar y) {
 }
 
 template <typename Scalar>
-class Givens_rotator {
+class GivensRotator {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
@@ -28,8 +28,8 @@ class Givens_rotator {
   using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
 
  public:
-  Givens_rotator() = default;
-  Givens_rotator(Scalar x, Scalar y) {
+  GivensRotator() = default;
+  GivensRotator(Scalar x, Scalar y) {
     angle_ = find_angle(x, y);
     rotary_matrix_ << angle_.cos, -angle_.sin, angle_.sin, angle_.cos;
   }
