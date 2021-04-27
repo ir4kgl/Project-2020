@@ -10,13 +10,14 @@ class HouseholderReflector {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
-  using VectorDynamic = Eigen::Matrix<Scalar, -1, 1>;
-  using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
-
  public:
+  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
+  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+
   HouseholderReflector() = default;
 
-  HouseholderReflector(VectorDynamic vector) : direction_(std::move(vector)) {
+  HouseholderReflector(DynamicVector vector) : direction_(std::move(vector)) {
     int size = direction_.rows();
     assert(size >= 2);
     if (direction_(0) > 0) {
@@ -27,20 +28,20 @@ class HouseholderReflector {
     direction_.normalize();
   }
 
-  const VectorDynamic& direction() const { return direction_; }
+  const DynamicVector& direction() const { return direction_; }
 
-  void reflect_left(BlockDynamic block) const {
+  void reflect_left(DynamicBlock block) const {
     assert(block.rows() == direction_.rows());
     block -= direction_ * (2 * (direction_.transpose() * block));
   }
 
-  void reflect_right(BlockDynamic block) const {
+  void reflect_right(DynamicBlock block) const {
     assert(block.cols() == direction_.rows());
     block -= 2 * (block * direction_) * direction_.transpose();
   }
 
  private:
-  VectorDynamic direction_;
+  DynamicVector direction_;
 };
 
 };  // namespace householder_reflection
