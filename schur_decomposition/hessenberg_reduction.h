@@ -10,10 +10,10 @@ template <typename Scalar>
 class HessenbergReduction {
   static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
 
- public:
   using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
 
+ public:
   void run(SquareMatrix* data, UnitaryMatrix* backtrace) {
     assert(data->rows() == data->cols());
     size_ = data->rows();
