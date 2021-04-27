@@ -5,54 +5,70 @@
 #include "../eigen/Eigen/Dense"
 #include "../schur_decomposition/givens_rotation.h"
 
+namespace test_givens_rotator {
+
 using std::abs;
 using std::cout;
 using std::endl;
 using std::srand;
 using std::time;
 
-using Eigen::MatrixXd;
 using givens_rotation::GivensRotator;
-
-namespace test_givens_rotator {
+using DynamicMatrix = GivensRotator<double>::DynamicMatrix;
 
 static constexpr const double precision = 1e-15;
-static constexpr const int tests_counter = 1000;
-static constexpr const int matrix_size = 30;
+static constexpr const int number_of_tests = 100;
+static constexpr const int matrix_size_max = 64;
 
-bool simple_check_left() {
-  MatrixXd data = MatrixXd::Random(2, matrix_size);
-  MatrixXd old_data = data;
+void process_left_check_failed(const DynamicMatrix& data,
+                               const DynamicMatrix& old_data) {
+  cout << "test failed in GivensRotator::rotate_left():\n\n";
+  cout << "input: M = \n" << old_data << "\n\n";
+  cout << "expected M(1, 0) = 0;\n\n";
+  cout << "rotation result:\n" << data << "\n";
+}
+
+void process_right_check_failed(const DynamicMatrix& data,
+                                const DynamicMatrix& old_data) {
+  cout << "test failed in GivensRotator::rotate_right():\n\n";
+  cout << "input: M = \n" << old_data << "\n\n";
+  cout << "expected M(0, 1) = 0;\n\n";
+  cout << "rotation result:\n" << data << "\n";
+}
+
+bool simple_check_left(int size) {
+  DynamicMatrix data = DynamicMatrix::Random(2, size);
+  DynamicMatrix old_data = data;
   GivensRotator rotator(data(0, 0), data(1, 0));
   rotator.rotate_left(&data);
+
   if (abs(data(1, 0) > precision)) {
-    cout << "test failed in GivensRotator::rotate_left():\n\n";
-    cout << "input: M = " << old_data << "\n";
-    cout << "expected M(1, 0) = 0;\n";
-    cout << "rotation result:" << data << "\n";
+    process_left_check_failed(data, old_data);
     return false;
   }
   return true;
 }
 
-bool simple_check_right() {
-  MatrixXd data = MatrixXd::Random(matrix_size, 2);
-  MatrixXd old_data = data;
+bool simple_check_right(int size) {
+  DynamicMatrix data = DynamicMatrix::Random(size, 2);
+  DynamicMatrix old_data = data;
   GivensRotator rotator(data(0, 0), data(0, 1));
   rotator.rotate_right(&data);
+
   if (abs(data(0, 1) > precision)) {
-    cout << "test failed in GivensRotator::rotate_left():\n\n";
-    cout << "input: M =\n" << old_data << "\n\n";
-    cout << "expected M(0, 1) = 0;\n\n";
-    cout << "rotation result:\n" << data << "\n";
+    process_right_check_failed(data, old_data);
     return false;
   }
   return true;
 }
 
 void run() {
-  for (int j = 0; j < tests_counter; ++j) {
-    if (!simple_check_left() || !simple_check_right()) return;
+  for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
+    for (int size = 1; size <= matrix_size_max; size *= 2) {
+      srand(test_id);
+      if (!simple_check_left(size) || !simple_check_right(size)) return;
+      if (!simple_check_left(size + 1) || !simple_check_right(size + 1)) return;
+    }
   }
 
   cout << "Passed all GivensRotator tests\n";

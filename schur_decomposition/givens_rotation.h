@@ -23,37 +23,37 @@ class GivensRotator {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
-  using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
-  using MatrixDynamic = Eigen::Matrix<Scalar, -1, -1>;
-  using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
-
  public:
+  using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
+  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+
   GivensRotator() = default;
   GivensRotator(Scalar x, Scalar y) {
     angle_ = find_angle(x, y);
     rotary_matrix_ << angle_.cos, -angle_.sin, angle_.sin, angle_.cos;
   }
 
-  void rotate_left(MatrixDynamic* out) const {
+  void rotate_left(DynamicMatrix* out) const {
     assert(out);
-    MatrixDynamic& old = *out;
+    DynamicMatrix& old = *out;
     assert(old.rows() == 2);
     old = rotary_matrix_.transpose() * old;
   }
 
-  void rotate_right(MatrixDynamic* out) const {
+  void rotate_right(DynamicMatrix* out) const {
     assert(out);
-    MatrixDynamic& old = *out;
+    DynamicMatrix& old = *out;
     assert(old.cols() == 2);
     old *= rotary_matrix_;
   }
 
-  void rotate_left(BlockDynamic old) const {
+  void rotate_left(DynamicBlock old) const {
     assert(old.rows() == 2);
     old = rotary_matrix_.transpose() * old;
   }
 
-  void rotate_right(BlockDynamic old) const {
+  void rotate_right(DynamicBlock old) const {
     assert(old.cols() == 2);
     old *= rotary_matrix_;
   }
