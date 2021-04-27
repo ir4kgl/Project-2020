@@ -10,47 +10,58 @@ namespace test_hessenberg_reduction {
 
 using std::cout;
 using Algorithm = hessenberg_reduction::HessenbergReduction<double>;
+using SquareMatrix = Algorithm::SquareMatrix;
+using UnitaryMatrix = Algorithm::UnitaryMatrix;
 
 constexpr const long double precision = 1e-12;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
-bool is_hessenberg_form(const Algorithm::SquareMatrix& data) {
-  return data.block(1, 0, data.rows() - 1, data.cols() - 1).isUpperTriangular();
+bool is_hessenberg_form(const SquareMatrix& data, int size) {
+  return data.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
 }
 
-bool are_equal(const Algorithm::SquareMatrix& first,
-               const Algorithm::SquareMatrix& second) {
+bool are_almost_equal(const SquareMatrix& first, const SquareMatrix& second) {
   return ((first - second).norm() < precision);
 }
 
+void process_hessenberg_check_failed(const SquareMatrix& data,
+                                     const SquareMatrix& old_data,
+                                     int test_id) {
+  cout << "test failed in HessenbergReduction::run():\n\n";
+  cout << "input: M =\n" << old_data << "\n\n";
+  cout << "expected M is upper Hessenberg form;\n\n";
+  cout << "reduction to Hessenberg form result: M =\n" << data << "\n\n";
+  cout << "test id:\t" << test_id << "\n";
+}
+
+void process_bad_restore(const SquareMatrix& old_data,
+                         const SquareMatrix& restored_data, int test_id) {
+  cout << "test failed in HessenbergReduction::run(), wrong restore:\n\n";
+  cout << "input: M =\n" << old_data << "\n\n";
+  cout << "restored: M =\n" << restored_data << "\n\n";
+  cout << "test id: " << test_id << "\n";
+}
+
 bool simple_check(int size, int test_id) {
-  Algorithm::SquareMatrix data = Algorithm::SquareMatrix::Random(size, size);
-  Algorithm::SquareMatrix old_data = data;
-  Algorithm::UnitaryMatrix backtrace;
+  SquareMatrix data = SquareMatrix::Random(size, size);
+  SquareMatrix old_data = data;
+  UnitaryMatrix backtrace;
 
   Algorithm reduction;
   reduction.run(&data, &backtrace);
 
-  if (!is_hessenberg_form(data)) {
-    cout << "test failed in HessenbergReduction::run():\n\n";
-    cout << "input: M =\n" << old_data << "\n\n";
-    cout << "expected M' is upper Hessenberg form;\n\n";
-    cout << "reduction to Hessenberg form result: M =\n" << data << "\n\n";
-    cout << "test id:\t" << test_id << "\n";
+  if (!is_hessenberg_form(data, size)) {
+    process_hessenberg_check_failed(data, old_data, size);
     return false;
   }
 
-  Algorithm::SquareMatrix restored_data =
-      backtrace * data * backtrace.transpose();
-
-  if (!are_equal(old_data, restored_data)) {
-    cout << "test failed in HessenbergReduction::run(), wrong restore:\n\n";
-    cout << "input: M =\n" << old_data << "\n\n";
-    cout << "restored: M =\n" << restored_data << "\n\n";
-    cout << "test id: " << test_id << "\n";
+  SquareMatrix restored_data = backtrace * data * backtrace.transpose();
+  if (!are_almost_equal(old_data, restored_data)) {
+    process_bad_restore(old_data, restored_data, test_id);
     return false;
   }
+
   return true;
 }
 
