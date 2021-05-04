@@ -11,16 +11,15 @@ class HessenbergReduction {
   static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
 
  public:
-  using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
 
-  void run(SquareMatrix* data, UnitaryMatrix* backtrace) {
+  void run(DynamicMatrix* data, DynamicMatrix* backtrace) {
     assert(data->rows() == data->cols());
     data_size_ = data->rows();
     p_hessenberg_form_ = data;
     p_backtrace_matrix_ = backtrace;
 
-    *p_backtrace_matrix_ = UnitaryMatrix::Identity(data_size_, data_size_);
+    *p_backtrace_matrix_ = DynamicMatrix::Identity(data_size_, data_size_);
     for (cur_col_ = 0; cur_col_ < data_size_ - 2; ++cur_col_) {
       cur_block_size_ = data_size_ - cur_col_ - 1;
       reflector_ = HouseholderReflector<Scalar>(
@@ -40,8 +39,8 @@ class HessenbergReduction {
         p_backtrace_matrix_->bottomRightCorner(data_size_, cur_block_size_));
   }
 
-  SquareMatrix* p_hessenberg_form_;
-  UnitaryMatrix* p_backtrace_matrix_;
+  DynamicMatrix* p_hessenberg_form_;
+  DynamicMatrix* p_backtrace_matrix_;
   HouseholderReflector<Scalar> reflector_;
 
   int data_size_;
