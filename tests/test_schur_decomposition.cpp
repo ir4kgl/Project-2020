@@ -11,7 +11,7 @@ using Algorithm = schur_decomposition::SchurDecomposition<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double precision = 1e-12;
-constexpr const int number_of_tests = 50;
+constexpr const int number_of_tests = 30;
 constexpr const int matrix_size_max = 128;
 
 void process_triangular_check_failed(const DynamicMatrix& data,
@@ -20,6 +20,15 @@ void process_triangular_check_failed(const DynamicMatrix& data,
   cout << "input: M =\n" << data << "\n\n";
   cout << "expected Schur form is quasi upper triangular matrix;\n\n";
   cout << "calculated Schur form:\n" << result << "\n\n";
+  cout << "test id:\t" << test_id << "\n";
+}
+
+void process_unitary_check_failed(const DynamicMatrix& data,
+                                  const DynamicMatrix& unitary, int test_id) {
+  cout << "test failed in SchurDecomposition::run():\n\n";
+  cout << "input: M =\n" << data << "\n\n";
+  cout << "expected unitary matrix;\n\n";
+  cout << "calculated:\n" << unitary << "\n\n";
   cout << "test id:\t" << test_id << "\n";
 }
 
@@ -65,6 +74,11 @@ bool simple_check(int size, int test_id) {
 
   if (!is_quasi_triangular(result, size)) {
     process_triangular_check_failed(data, result, test_id);
+    return false;
+  }
+
+  if (!backtrace.isUnitary()) {
+    process_unitary_check_failed(data, backtrace, test_id);
     return false;
   }
 

@@ -32,6 +32,15 @@ void process_hessenberg_check_failed(const DynamicMatrix& data,
   cout << "test id:\t" << test_id << "\n";
 }
 
+void process_unitary_check_failed(const DynamicMatrix& data,
+                                  const DynamicMatrix& unitary, int test_id) {
+  cout << "test failed in SchurDecomposition::run():\n\n";
+  cout << "input: M =\n" << data << "\n\n";
+  cout << "expected unitary matrix;\n\n";
+  cout << "calculated:\n" << unitary << "\n\n";
+  cout << "test id:\t" << test_id << "\n";
+}
+
 void process_bad_restore(const DynamicMatrix& old_data,
                          const DynamicMatrix& restored_data, int test_id) {
   cout << "test failed in HessenbergReduction::run(), wrong restore:\n\n";
@@ -50,6 +59,11 @@ bool simple_check(int size, int test_id) {
 
   if (!is_hessenberg_form(data, size)) {
     process_hessenberg_check_failed(data, old_data, size);
+    return false;
+  }
+
+  if (!backtrace.isUnitary()) {
+    process_unitary_check_failed(data, backtrace, test_id);
     return false;
   }
 
