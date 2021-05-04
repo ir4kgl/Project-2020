@@ -1,4 +1,3 @@
-#include <iomanip>
 #include <iostream>
 #include <random>
 
@@ -9,9 +8,7 @@ namespace test_givens_rotator {
 
 using std::abs;
 using std::cout;
-using std::endl;
 using std::srand;
-using std::time;
 
 using givens_rotation::GivensRotator;
 using DynamicMatrix = GivensRotator<double>::DynamicMatrix;
