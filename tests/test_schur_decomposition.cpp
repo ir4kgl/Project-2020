@@ -16,8 +16,67 @@ constexpr const long double precision = 1e-12;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
+void process_triangular_check_failed(const SquareMatrix& data,
+                                     const SchurForm& result, int test_id) {
+  cout << "test failed in SchurDecomposition::run():\n\n";
+  cout << "input: M =\n" << data << "\n\n";
+  cout << "expected Schur form is quasi upper triangular matrix;\n\n";
+  cout << "calculated Schur form:\n" << result << "\n\n";
+  cout << "test id:\t" << test_id << "\n";
+}
+
+void process_bad_restore(const SquareMatrix& old_data,
+                         const SquareMatrix& restored_data, int test_id,
+                         double delta) {
+  cout << "test failed in SchurDecomposition::run(), wrong restore:\n\n";
+  // cout << "input: M =\n" << old_data << "\n\n";
+  // cout << "restored: M =\n" << restored_data << "\n\n";
+  cout << "delta = " << delta << "\n";
+  cout << "test id: " << test_id << "\n";
+}
+
+bool is_hessenberg_form(const SchurForm& result, int size) {
+  return result.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
+}
+
+bool near_zero(double val) { return abs(val) < precision; }
+
+bool are_indistinguishable(const SquareMatrix& first,
+                           const SquareMatrix& second, int size) {
+  return ((first - second).norm() < precision * size * size);
+}
+
+bool is_quasi_triangular(const SchurForm& result, int size) {
+  if (!is_hessenberg_form(result, size)) return false;
+
+  for (int j = 1; j < size - 1; ++j) {
+    if (!near_zero(result(j + 1, j) && !near_zero(result(j, j - 1)))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool simple_check(int size, int test_id) {
-  //   SquareMatrix data = SquareMatrix::Random(size, size);
+  SquareMatrix data = SquareMatrix::Random(size, size);
+  SchurForm result;
+  UnitaryMatrix backtrace;
+
+  Algorithm algorithm(precision);
+  algorithm.run(data, &result, &backtrace);
+
+  if (!is_quasi_triangular(result, size)) {
+    process_triangular_check_failed(data, result, test_id);
+    return false;
+  }
+
+  SquareMatrix restored_data = backtrace * result * backtrace.transpose();
+  if (!are_indistinguishable(data, restored_data, size)) {
+    process_bad_restore(data, restored_data, test_id,
+                        (data - restored_data).norm());
+    return false;
+  }
+
   return true;
 }
 
