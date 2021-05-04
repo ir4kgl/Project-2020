@@ -13,12 +13,10 @@ class SchurDecomposition {
   static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
 
  public:
-  using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
   using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
   using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
-  using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using SchurForm = Eigen::Matrix<Scalar, -1, -1>;
   using Precision = Scalar;
 
   using Rotator = givens_rotation::GivensRotator<Scalar>;
@@ -29,8 +27,8 @@ class SchurDecomposition {
     assert(precision >= 0);
   }
 
-  void run(const SquareMatrix& data, SchurForm* schur_form,
-           UnitaryMatrix* unitary) {
+  void run(const DynamicMatrix& data, DynamicMatrix* schur_form,
+           DynamicMatrix* unitary) {
     assert(data.rows() == data.cols());
     assert(schur_form);
     assert(unitary);
@@ -125,7 +123,7 @@ class SchurDecomposition {
     Scalar trace = find_bottom_corner_trace(cur_size);
     Scalar det = find_bottom_corner_det(cur_size);
 
-    BlockDynamic top_corner = p_schur_form_->topLeftCorner(3, 3);
+    DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
     Matrix3 starter_block = top_corner * top_corner - trace * top_corner +
                             det * Matrix3::Identity();
     return starter_block.col(0);
@@ -142,8 +140,8 @@ class SchurDecomposition {
   bool near_zero(Scalar value) { return abs(value) < precision_; }
 
   Precision precision_;
-  SchurForm* p_schur_form_;
-  UnitaryMatrix* p_unitary_;
+  DynamicMatrix* p_schur_form_;
+  DynamicMatrix* p_unitary_;
 
   Reflector reflector_;
   int data_size_;

@@ -10,23 +10,22 @@ namespace test_hessenberg_reduction {
 
 using std::cout;
 using Algorithm = hessenberg_reduction::HessenbergReduction<double>;
-using SquareMatrix = Algorithm::SquareMatrix;
-using UnitaryMatrix = Algorithm::UnitaryMatrix;
+using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double precision = 1e-12;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
-bool is_hessenberg_form(const SquareMatrix& data, int size) {
+bool is_hessenberg_form(const DynamicMatrix& data, int size) {
   return data.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
 }
 
-bool are_almost_equal(const SquareMatrix& first, const SquareMatrix& second) {
+bool are_almost_equal(const DynamicMatrix& first, const DynamicMatrix& second) {
   return ((first - second).norm() < precision);
 }
 
-void process_hessenberg_check_failed(const SquareMatrix& data,
-                                     const SquareMatrix& old_data,
+void process_hessenberg_check_failed(const DynamicMatrix& data,
+                                     const DynamicMatrix& old_data,
                                      int test_id) {
   cout << "test failed in HessenbergReduction::run():\n\n";
   cout << "input: M =\n" << old_data << "\n\n";
@@ -35,8 +34,8 @@ void process_hessenberg_check_failed(const SquareMatrix& data,
   cout << "test id:\t" << test_id << "\n";
 }
 
-void process_bad_restore(const SquareMatrix& old_data,
-                         const SquareMatrix& restored_data, int test_id) {
+void process_bad_restore(const DynamicMatrix& old_data,
+                         const DynamicMatrix& restored_data, int test_id) {
   cout << "test failed in HessenbergReduction::run(), wrong restore:\n\n";
   cout << "input: M =\n" << old_data << "\n\n";
   cout << "restored: M =\n" << restored_data << "\n\n";
@@ -44,9 +43,9 @@ void process_bad_restore(const SquareMatrix& old_data,
 }
 
 bool simple_check(int size, int test_id) {
-  SquareMatrix data = SquareMatrix::Random(size, size);
-  SquareMatrix old_data = data;
-  UnitaryMatrix backtrace;
+  DynamicMatrix data = DynamicMatrix::Random(size, size);
+  DynamicMatrix old_data = data;
+  DynamicMatrix backtrace;
 
   Algorithm reduction;
   reduction.run(&data, &backtrace);
@@ -56,7 +55,7 @@ bool simple_check(int size, int test_id) {
     return false;
   }
 
-  SquareMatrix restored_data = backtrace * data * backtrace.transpose();
+  DynamicMatrix restored_data = backtrace * data * backtrace.transpose();
   if (!are_almost_equal(old_data, restored_data)) {
     process_bad_restore(old_data, restored_data, test_id);
     return false;
