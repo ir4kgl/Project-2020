@@ -16,15 +16,15 @@ class HessenbergReduction {
 
   void run(SquareMatrix* data, UnitaryMatrix* backtrace) {
     assert(data->rows() == data->cols());
-    size_ = data->rows();
+    data_size_ = data->rows();
     p_hessenberg_form_ = data;
     p_backtrace_matrix_ = backtrace;
 
-    *p_backtrace_matrix_ = UnitaryMatrix::Identity(size_, size_);
-    for (col_ = 0; col_ < size_ - 2; ++col_) {
-      zeroed_counter_ = size_ - col_ - 1;
+    *p_backtrace_matrix_ = UnitaryMatrix::Identity(data_size_, data_size_);
+    for (cur_col_ = 0; cur_col_ < data_size_ - 2; ++cur_col_) {
+      cur_block_size_ = data_size_ - cur_col_ - 1;
       reflector_ = HouseholderReflector<Scalar>(
-          p_hessenberg_form_->col(col_).bottomRows(zeroed_counter_));
+          p_hessenberg_form_->col(cur_col_).bottomRows(cur_block_size_));
       reduce_column();
     }
     reflector_ = {};
@@ -32,21 +32,21 @@ class HessenbergReduction {
 
  private:
   void reduce_column() {
-    reflector_.reflect_left(
-        p_hessenberg_form_->bottomRightCorner(zeroed_counter_, size_ - col_));
+    reflector_.reflect_left(p_hessenberg_form_->bottomRightCorner(
+        cur_block_size_, data_size_ - cur_col_));
     reflector_.reflect_right(
-        p_hessenberg_form_->bottomRightCorner(size_, zeroed_counter_));
+        p_hessenberg_form_->bottomRightCorner(data_size_, cur_block_size_));
     reflector_.reflect_right(
-        p_backtrace_matrix_->bottomRightCorner(size_, zeroed_counter_));
+        p_backtrace_matrix_->bottomRightCorner(data_size_, cur_block_size_));
   }
 
   SquareMatrix* p_hessenberg_form_;
   UnitaryMatrix* p_backtrace_matrix_;
   HouseholderReflector<Scalar> reflector_;
 
-  int size_;
-  int col_;
-  int zeroed_counter_;
+  int data_size_;
+  int cur_col_;
+  int cur_block_size_;
 
 };  // namespace hessenberg_reduction
 
