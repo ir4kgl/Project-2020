@@ -18,7 +18,8 @@ bool is_hessenberg_form(const DynamicMatrix& data, int size) {
   return data.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
 }
 
-bool are_almost_equal(const DynamicMatrix& first, const DynamicMatrix& second) {
+bool are_indistinguishable(const DynamicMatrix& first,
+                           const DynamicMatrix& second) {
   return ((first - second).norm() < precision);
 }
 
@@ -68,7 +69,7 @@ bool simple_check(int size, int test_id) {
   }
 
   DynamicMatrix restored_data = backtrace * data * backtrace.transpose();
-  if (!are_almost_equal(old_data, restored_data)) {
+  if (!are_indistinguishable(old_data, restored_data)) {
     process_bad_restore(old_data, restored_data, test_id);
     return false;
   }
