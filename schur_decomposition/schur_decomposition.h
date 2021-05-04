@@ -5,20 +5,20 @@
 
 namespace schur_decomposition {
 
+using givens_rotation::GivensRotator;
+using householder_reflection::HouseholderReflector;
+
 template <typename Scalar>
 class SchurDecomposition {
   static_assert(std::is_arithmetic_v<Scalar>,
                 "Scalar must be arithmetic type!");
 
-  using givens_rotation::GivensRotator;
-  using householder_reflection::HouseholderReflector;
-
+ public:
   using SchurForm = Eigen::Matrix<Scalar, -1, -1>;
   using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using Precision = Scalar;
 
- public:
   SchurDecomposition(Precision precision) : precision_(precision) {
     assert(precision >= 0);
   }
