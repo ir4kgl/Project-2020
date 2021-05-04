@@ -8,14 +8,16 @@ namespace test_schur_decomposition {
 
 using std::cout;
 using Algorithm = schur_decomposition::SchurDecomposition<double>;
-using DynamicMatrix = Algorithm::DynamicMatrix;
+using SchurForm = Algorithm::SchurForm;
+using SquareMatrix = Algorithm::SquareMatrix;
+using UnitaryMatrix = Algorithm::UnitaryMatrix;
 
 constexpr const long double precision = 1e-12;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
-void process_triangular_check_failed(const DynamicMatrix& data,
-                                     const DynamicMatrix& result, int test_id) {
+void process_triangular_check_failed(const SquareMatrix& data,
+                                     const SchurForm& result, int test_id) {
   cout << "test failed in SchurDecomposition::run():\n\n";
   cout << "input: M =\n" << data << "\n\n";
   cout << "expected Schur form is quasi upper triangular matrix;\n\n";
@@ -23,8 +25,8 @@ void process_triangular_check_failed(const DynamicMatrix& data,
   cout << "test id:\t" << test_id << "\n";
 }
 
-void process_bad_restore(const DynamicMatrix& old_data,
-                         const DynamicMatrix& restored_data, int test_id,
+void process_bad_restore(const SquareMatrix& old_data,
+                         const SquareMatrix& restored_data, int test_id,
                          double delta) {
   cout << "test failed in SchurDecomposition::run(), wrong restore:\n\n";
   // cout << "input: M =\n" << old_data << "\n\n";
@@ -33,18 +35,18 @@ void process_bad_restore(const DynamicMatrix& old_data,
   cout << "test id: " << test_id << "\n";
 }
 
-bool is_hessenberg_form(const DynamicMatrix& result, int size) {
+bool is_hessenberg_form(const SchurForm& result, int size) {
   return result.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
 }
 
 bool near_zero(double val) { return abs(val) < precision; }
 
-bool are_indistinguishable(const DynamicMatrix& first,
-                           const DynamicMatrix& second, int size) {
+bool are_indistinguishable(const SquareMatrix& first,
+                           const SquareMatrix& second, int size) {
   return ((first - second).norm() < precision * size * size);
 }
 
-bool is_quasi_triangular(const DynamicMatrix& result, int size) {
+bool is_quasi_triangular(const SchurForm& result, int size) {
   if (!is_hessenberg_form(result, size)) return false;
 
   for (int j = 1; j < size - 1; ++j) {
@@ -56,9 +58,9 @@ bool is_quasi_triangular(const DynamicMatrix& result, int size) {
 }
 
 bool simple_check(int size, int test_id) {
-  DynamicMatrix data = DynamicMatrix::Random(size, size);
-  DynamicMatrix result;
-  DynamicMatrix backtrace;
+  SquareMatrix data = SquareMatrix::Random(size, size);
+  SchurForm result;
+  UnitaryMatrix backtrace;
 
   Algorithm algorithm(precision);
   algorithm.run(data, &result, &backtrace);
@@ -68,7 +70,7 @@ bool simple_check(int size, int test_id) {
     return false;
   }
 
-  DynamicMatrix restored_data = backtrace * result * backtrace.transpose();
+  SquareMatrix restored_data = backtrace * result * backtrace.transpose();
   if (!are_indistinguishable(data, restored_data, size)) {
     process_bad_restore(data, restored_data, test_id,
                         (data - restored_data).norm());

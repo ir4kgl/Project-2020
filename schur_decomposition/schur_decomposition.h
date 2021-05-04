@@ -16,7 +16,9 @@ class SchurDecomposition {
   using BlockDynamic = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
   using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
   using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
-  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using SquareMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using UnitaryMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using SchurForm = Eigen::Matrix<Scalar, -1, -1>;
   using Precision = Scalar;
 
   using Rotator = givens_rotation::GivensRotator<Scalar>;
@@ -27,8 +29,8 @@ class SchurDecomposition {
     assert(precision >= 0);
   }
 
-  void run(const DynamicMatrix& data, DynamicMatrix* schur_form,
-           DynamicMatrix* unitary) {
+  void run(const SquareMatrix& data, SchurForm* schur_form,
+           UnitaryMatrix* unitary) {
     assert(data.rows() == data.cols());
     assert(schur_form);
     assert(unitary);
@@ -140,8 +142,8 @@ class SchurDecomposition {
   bool near_zero(Scalar value) { return abs(value) < precision_; }
 
   Precision precision_;
-  DynamicMatrix* p_schur_form_;
-  DynamicMatrix* p_unitary_;
+  SchurForm* p_schur_form_;
+  UnitaryMatrix* p_unitary_;
 
   Reflector reflector_;
   int data_size_;
