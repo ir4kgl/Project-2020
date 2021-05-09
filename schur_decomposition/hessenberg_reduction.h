@@ -13,6 +13,7 @@ class HessenbergReduction {
  public:
   using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
+
   using HouseholderReflector =
       householder_reflection::HouseholderReflector<Scalar>;
   using TridiagonalSymmetric =
@@ -23,10 +24,12 @@ class HessenbergReduction {
            DynamicMatrix* backtrace) {
     assert(data.rows() == data.cols());
 
-    data_size_ = data.rows();
     hessenberg_form_ = data;
     p_hessenberg_form_diagonals_ = hessenberg_form_diagonals;
     p_backtrace_matrix_ = backtrace;
+
+    data_size_ = data.rows();
+    p_hessenberg_form_diagonals_->set_size(data_size_);
     *p_backtrace_matrix_ = DynamicMatrix::Identity(data_size_, data_size_);
 
     reduce_matrix();

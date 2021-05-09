@@ -12,17 +12,13 @@ using TridiagonalSymmetric =
     tridiagonal_symmetric::TridiagonalSymmetric<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
-constexpr const long double precision = 1e-12;
+constexpr const long double precision = 1e-15;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
-bool is_hessenberg_form(const DynamicMatrix& data, int size) {
-  return data.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
-}
-
 bool are_indistinguishable(const DynamicMatrix& first,
-                           const DynamicMatrix& second) {
-  return ((first - second).norm() < precision);
+                           const DynamicMatrix& second, int size) {
+  return ((first - second).norm() < precision * size * size);
 }
 
 void process_unitary_check_failed(const DynamicMatrix& data,
@@ -39,15 +35,16 @@ void process_bad_restore(const DynamicMatrix& old_data,
   cout << "test failed in HessenbergReduction::run(), wrong restore:\n\n";
   cout << "input: M =\n" << old_data << "\n\n";
   cout << "restored: M =\n" << restored_data << "\n\n";
+  cout << "delta: " << (old_data - restored_data).norm() << "\n";
   cout << "test id: " << test_id << "\n";
 }
 
 bool simple_check(int size, int test_id) {
   DynamicMatrix data = DynamicMatrix::Random(size, size);
-  data += data.transpose();
+  data *= data.transpose();
 
   DynamicMatrix backtrace;
-  TridiagonalSymmetric result;
+  TridiagonalSymmetric result(size);
 
   Algorithm reduction;
   reduction.run(data, &result, &backtrace);
@@ -57,13 +54,13 @@ bool simple_check(int size, int test_id) {
     return false;
   }
 
-  DynamicMatrix restored_data = DynamicMatrix::Zero(size);
+  DynamicMatrix restored_data = DynamicMatrix::Zero(size, size);
   restored_data.diagonal(0) = result.get_major_diagonal();
   restored_data.diagonal(1) = result.get_side_diagonal();
   restored_data.diagonal(-1) = result.get_side_diagonal();
   restored_data = backtrace * restored_data * backtrace.transpose();
 
-  if (!are_indistinguishable(data, restored_data)) {
+  if (!are_indistinguishable(data, restored_data, size)) {
     process_bad_restore(data, restored_data, test_id);
     return false;
   }
@@ -73,7 +70,7 @@ bool simple_check(int size, int test_id) {
 
 void run() {
   for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
-    for (int size = 1; size <= matrix_size_max; size *= 2) {
+    for (int size = 2; size <= matrix_size_max; size *= 2) {
       srand(test_id);
       if (!simple_check(size, test_id)) return;
       if (!simple_check(size + 1, test_id)) return;
