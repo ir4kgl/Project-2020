@@ -23,6 +23,8 @@ class HessenbergReduction {
            TridiagonalSymmetric* hessenberg_form_diagonals,
            DynamicMatrix* backtrace) {
     assert(data.rows() == data.cols());
+    assert(hessenberg_form_diagonals);
+    assert(backtrace);
 
     hessenberg_form_ = data;
     p_hessenberg_form_diagonals_ = hessenberg_form_diagonals;
