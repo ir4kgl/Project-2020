@@ -8,6 +8,8 @@ namespace test_hessenberg_reduction {
 
 using std::cout;
 using Algorithm = hessenberg_reduction::HessenbergReduction<double>;
+using TridiagonalSymmetric =
+    tridiagonal_symmetric::TridiagonalSymmetric<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double precision = 1e-12;
@@ -21,16 +23,6 @@ bool is_hessenberg_form(const DynamicMatrix& data, int size) {
 bool are_indistinguishable(const DynamicMatrix& first,
                            const DynamicMatrix& second) {
   return ((first - second).norm() < precision);
-}
-
-void process_hessenberg_check_failed(const DynamicMatrix& data,
-                                     const DynamicMatrix& old_data,
-                                     int test_id) {
-  cout << "test failed in HessenbergReduction::run():\n\n";
-  cout << "input: M =\n" << old_data << "\n\n";
-  cout << "expected M is upper Hessenberg form;\n\n";
-  cout << "reduction to Hessenberg form result: M =\n" << data << "\n\n";
-  cout << "test id:\t" << test_id << "\n";
 }
 
 void process_unitary_check_failed(const DynamicMatrix& data,
@@ -52,25 +44,27 @@ void process_bad_restore(const DynamicMatrix& old_data,
 
 bool simple_check(int size, int test_id) {
   DynamicMatrix data = DynamicMatrix::Random(size, size);
-  DynamicMatrix old_data = data;
+  data += data.transpose();
+
   DynamicMatrix backtrace;
+  TridiagonalSymmetric result;
 
   Algorithm reduction;
-  reduction.run(&data, &backtrace);
-
-  if (!is_hessenberg_form(data, size)) {
-    process_hessenberg_check_failed(data, old_data, size);
-    return false;
-  }
+  reduction.run(data, &result, &backtrace);
 
   if (!backtrace.isUnitary()) {
     process_unitary_check_failed(data, backtrace, test_id);
     return false;
   }
 
-  DynamicMatrix restored_data = backtrace * data * backtrace.transpose();
-  if (!are_indistinguishable(old_data, restored_data)) {
-    process_bad_restore(old_data, restored_data, test_id);
+  DynamicMatrix restored_data = DynamicMatrix::Zero(size);
+  restored_data.diagonal(0) = result.get_major_diagonal();
+  restored_data.diagonal(1) = result.get_side_diagonal();
+  restored_data.diagonal(-1) = result.get_side_diagonal();
+  restored_data = backtrace * restored_data * backtrace.transpose();
+
+  if (!are_indistinguishable(data, restored_data)) {
+    process_bad_restore(data, restored_data, test_id);
     return false;
   }
 
