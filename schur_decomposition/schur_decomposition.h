@@ -7,6 +7,8 @@ namespace schur_decomposition {
 using std::abs;
 using std::is_arithmetic_v;
 using std::min;
+using std::pow;
+using std::sqrt;
 
 template <typename Scalar>
 class SchurDecomposition {
@@ -14,31 +16,29 @@ class SchurDecomposition {
 
  public:
   using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
-  using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
-  using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+  using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
   using Precision = Scalar;
 
   using Rotator = givens_rotation::GivensRotator<Scalar>;
-  using Reflector = householder_reflection::HouseholderReflector<Scalar>;
   using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
+  using TridiagonalSymmetric =
+      tridiagonal_symmetric::TridiagonalSymmetric<Scalar>;
 
   SchurDecomposition(Precision precision) : precision_(precision) {
     assert(precision >= 0);
   }
 
-  void run(const DynamicMatrix& data, DynamicMatrix* schur_form,
+  void run(const DynamicMatrix& data, DynamicVector* eigenvalues,
            DynamicMatrix* unitary) {
     assert(data.rows() == data.cols());
-    assert(schur_form);
+    assert(eigenvalues);
     assert(unitary);
 
     data_size_ = data.rows();
-    p_schur_form_ = schur_form;
+    p_eigenvalues_ = eigenvalues;
     p_unitary_ = unitary;
-    *p_schur_form_ = data;
 
-    reduce_to_hessenberg_form();
+    reduce_to_hessenberg_form(data);
     run_QR_algorithm();
   }
 
@@ -50,100 +50,137 @@ class SchurDecomposition {
   Precision get_precision() const { return precision_; }
 
  private:
-  void reduce_to_hessenberg_form() {
+  void reduce_to_hessenberg_form(const DynamicMatrix& data) {
     HessenbergReduction reduction;
-    reduction.run(p_schur_form_, p_unitary_);
+    reduction.run(data, &diagonals_, p_unitary_);
   }
 
   void run_QR_algorithm() {
+    Scalar bulge;
+
     for (int cur_size = data_size_ - 1; cur_size >= 2;) {
-      start(cur_size);
-      process(cur_size);
-      finish(cur_size);
+      make_shift(cur_size, &bulge);
+      process_shift(cur_size, &bulge);
+      finish(cur_size, bulge);
       deflate(&cur_size);
     }
+
+    process_submatrix2();
+    *p_eigenvalues_ = diagonals_.get_major_diagonal();
+    diagonals_ = {};
   }
 
-  void start(int cur_size) {
-    reflector_ = Reflector(find_starter_column(cur_size));
-
-    reflector_.reflect_left(p_schur_form_->block(0, 0, 3, data_size_));
-    reflector_.reflect_right(
-        p_schur_form_->block(0, 0, min(cur_size, 3) + 1, 3));
-    reflector_.reflect_right(p_unitary_->block(0, 0, data_size_, 3));
+  void make_shift(int cur_size, Scalar* bulge) {
+    Scalar shift = wilkinson_shift(cur_size);
+    rotator_ = Rotator(diagonals_.get_major_diagonal()(0) - shift,
+                       diagonals_.get_side_diagonal()(0));
+    rotate_twice(0);
+    rotator_.rotate_right(p_unitary_->block(0, 0, data_size_, 2));
+    *bulge = diagonals_.get_side_diagonal()(1) * rotator_.sin();
+    diagonals_.get_side_diagonal()(1) *= rotator_.cos();
   }
 
-  void process(int cur_size) {
-    for (int step = 0; step <= cur_size - 3; ++step) {
-      reflector_ = Reflector(p_schur_form_->block(step + 1, step, 3, 1));
+  void process_shift(int cur_size, Scalar* bulge) {
+    for (int step = 1; step <= cur_size - 2; ++step) {
+      Scalar tmp = diagonals_.get_side_diagonal()(step - 1);
+      rotator_ = Rotator(tmp, *bulge);
 
-      reflector_.reflect_left(
-          p_schur_form_->block(step + 1, step, 3, data_size_ - step));
-      reflector_.reflect_right(
-          p_schur_form_->block(0, step + 1, min(cur_size, step + 4) + 1, 3));
-      reflector_.reflect_right(p_unitary_->block(0, step + 1, data_size_, 3));
+      rotate_twice(step);
+      rotator_.rotate_right(p_unitary_->block(0, step, data_size_, 2));
+      diagonals_.get_side_diagonal()(step - 1) =
+          rotator_.cos() * tmp + rotator_.sin() * (*bulge);
+      *bulge = diagonals_.get_side_diagonal()(step + 1) * rotator_.sin();
+      diagonals_.get_side_diagonal()(step + 1) *= rotator_.cos();
     }
   }
 
-  void finish(int cur_size) {
-    reflector_ =
-        Reflector(p_schur_form_->block(cur_size - 1, cur_size - 2, 2, 1));
+  void finish(int cur_size, Scalar bulge) {
+    Scalar tmp = diagonals_.get_side_diagonal()(cur_size - 2);
+    rotator_ = Rotator(tmp, bulge);
 
-    reflector_.reflect_left(p_schur_form_->block(cur_size - 1, cur_size - 2, 2,
-                                                 data_size_ - cur_size + 2));
-    reflector_.reflect_right(
-        p_schur_form_->block(0, cur_size - 1, cur_size + 1, 2));
-    reflector_.reflect_right(p_unitary_->block(0, cur_size - 1, data_size_, 2));
+    rotate_twice(cur_size - 1);
+    rotator_.rotate_right(p_unitary_->block(0, cur_size - 1, data_size_, 2));
+    diagonals_.get_side_diagonal()(cur_size - 2) =
+        rotator_.cos() * tmp + rotator_.sin() * bulge;
 
-    reflector_ = {};
+    rotator_ = {};
+  }
+
+  void rotate_twice(int index) {
+    DynamicMatrix square(2, 2);
+
+    square << diagonals_.get_major_diagonal()(index),
+        diagonals_.get_side_diagonal()(index),
+        diagonals_.get_side_diagonal()(index),
+        diagonals_.get_major_diagonal()(index + 1);
+
+    rotator_.rotate_left(&square);
+    rotator_.rotate_right(&square);
+
+    diagonals_.get_major_diagonal()(index) = square(0, 0);
+    diagonals_.get_major_diagonal()(index + 1) = square(1, 1);
+    diagonals_.get_side_diagonal()(index) = square(0, 1);
+  }
+
+  void process_submatrix2() {
+    Scalar eigenvalue = find_eigenvalue2();
+    rotator_ = Rotator(diagonals_.get_major_diagonal()(0) - eigenvalue,
+                       diagonals_.get_side_diagonal()(0));
+    rotate_twice(0);
+    rotator_.rotate_right(p_unitary_->block(0, 0, data_size_, 2));
+  }
+
+  Scalar find_eigenvalue2() {
+    DynamicMatrix square(2, 2);
+    square << diagonals_.get_major_diagonal()(0),
+        diagonals_.get_side_diagonal()(0), diagonals_.get_side_diagonal()(0),
+        diagonals_.get_major_diagonal()(1);
+    Scalar trace = square.trace();
+    Scalar det = square.determinant();
+    return (trace + sqrt(trace * trace - 4 * det)) / 2;
+  }
+
+  Scalar wilkinson_shift(int cur_size) {
+    Scalar delta = diagonals_.get_major_diagonal()(cur_size - 1) -
+                   diagonals_.get_major_diagonal()(cur_size);
+    Scalar hypot =
+        std::hypot(delta / 2, diagonals_.get_side_diagonal()(cur_size - 1));
+
+    if (!near_zero(delta) && delta > 0) {
+      return diagonals_.get_major_diagonal()(cur_size) -
+             pow(diagonals_.get_side_diagonal()(cur_size - 1), 2) /
+                 (delta / 2 + hypot);
+    }
+    if (!near_zero(delta) && delta < 0) {
+      return diagonals_.get_major_diagonal()(cur_size) -
+             pow(diagonals_.get_side_diagonal()(cur_size - 1), 2) /
+                 (delta / 2 - hypot);
+    }
+    return diagonals_.get_major_diagonal()(cur_size) -
+           abs(diagonals_.get_side_diagonal()(cur_size - 1));
   }
 
   void deflate(int* p_cur_size) {
-    if (near_zero((*p_schur_form_)(*p_cur_size, *p_cur_size - 1))) {
-      deflate_once(p_cur_size);
+    if (check_convergence(*p_cur_size)) {
+      --(*p_cur_size);
       return;
     }
-
-    if (near_zero((*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2))) {
-      deflate_twice(p_cur_size);
-    }
   }
 
-  void deflate_once(int* p_cur_size) {
-    (*p_schur_form_)(*p_cur_size, *p_cur_size - 1) = 0;
-    *p_cur_size -= 1;
-  }
-
-  void deflate_twice(int* p_cur_size) {
-    (*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2) = 0;
-    *p_cur_size -= 2;
-  }
-
-  Vector3 find_starter_column(int cur_size) {
-    Scalar trace = find_bottom_corner_trace(cur_size);
-    Scalar det = find_bottom_corner_det(cur_size);
-
-    DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
-    Matrix3 starter_block = top_corner * top_corner - trace * top_corner +
-                            det * Matrix3::Identity();
-    return starter_block.col(0);
-  }
-
-  Scalar find_bottom_corner_trace(int cur_size) {
-    return p_schur_form_->block(cur_size - 1, cur_size - 1, 2, 2).trace();
-  }
-
-  Scalar find_bottom_corner_det(int cur_size) {
-    return p_schur_form_->block(cur_size - 1, cur_size - 1, 2, 2).determinant();
+  bool check_convergence(int p_cur_size) {
+    return abs(diagonals_.get_side_diagonal()(p_cur_size - 1)) <
+           precision_ * (abs(diagonals_.get_major_diagonal()(p_cur_size - 1)) +
+                         abs(diagonals_.get_major_diagonal()(p_cur_size)));
   }
 
   bool near_zero(Scalar value) { return abs(value) < precision_; }
 
   Precision precision_;
-  DynamicMatrix* p_schur_form_;
+  DynamicVector* p_eigenvalues_;
   DynamicMatrix* p_unitary_;
 
-  Reflector reflector_;
+  TridiagonalSymmetric diagonals_;
+  Rotator rotator_;
   int data_size_;
 };
 
