@@ -26,7 +26,7 @@ class SchurDecomposition {
 
   void run(const DynamicMatrix& data, DynamicMatrix* schur_form,
            DynamicMatrix* unitary) {
-    set_internal_members(data, schur_form, unitary);
+    set_internal_resources(data, schur_form, unitary);
     reduce_to_hessenberg_form();
     run_QR_algorithm();
   }
@@ -131,8 +131,9 @@ class SchurDecomposition {
         .determinant();
   }
 
-  void set_internal_members(const DynamicMatrix& data,
-                            DynamicMatrix* schur_form, DynamicMatrix* unitary) {
+  void set_internal_resources(const DynamicMatrix& data,
+                              DynamicMatrix* schur_form,
+                              DynamicMatrix* unitary) {
     assert(data.rows() == data.cols());
     assert(schur_form);
     assert(unitary);
