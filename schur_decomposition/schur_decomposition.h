@@ -134,13 +134,13 @@ class SchurDecomposition {
   void set_internal_resources(const DynamicMatrix& data,
                               DynamicMatrix* schur_form,
                               DynamicMatrix* unitary) {
-    assert(data.rows() == data.cols());
     assert(schur_form);
-    assert(unitary);
-
     p_schur_form_ = schur_form;
-    p_unitary_ = unitary;
+    assert(data.rows() == data.cols());
     *p_schur_form_ = data;
+
+    assert(unitary);
+    p_unitary_ = unitary;
   }
 
   bool near_zero(Scalar value) { return std::abs(value) < precision_; }

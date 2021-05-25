@@ -51,8 +51,11 @@ class HessenbergReduction {
   }
 
   void set_internal_resources(DynamicMatrix* data, DynamicMatrix* backtrace) {
+    assert(data);
     assert(data->rows() == data->cols());
     p_hessenberg_form_ = data;
+
+    assert(backtrace);
     p_backtrace_matrix_ = backtrace;
     *p_backtrace_matrix_ = DynamicMatrix::Identity(data_size(), data_size());
   }
