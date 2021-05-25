@@ -30,8 +30,8 @@ class GivensRotator {
 
   GivensRotator() = default;
   GivensRotator(Scalar x, Scalar y) {
-    angle_ = find_angle(x, y);
-    rotary_matrix_ << angle_.cos, -angle_.sin, angle_.sin, angle_.cos;
+    AngleData<Scalar> angle = find_angle(x, y);
+    rotary_matrix_ << angle.cos, -angle.sin, angle.sin, angle.cos;
   }
 
   void rotate_left(DynamicMatrix* out) const {
@@ -58,11 +58,10 @@ class GivensRotator {
     old *= rotary_matrix_;
   }
 
-  Scalar cos() const { return angle_.cos; }
-  Scalar sin() const { return angle_.sin; }
+  Scalar cos() const { return rotary_matrix_(0, 0); }
+  Scalar sin() const { return rotary_matrix_(1, 0); }
 
  private:
-  AngleData<Scalar> angle_;
   Matrix2 rotary_matrix_;
 };
 
