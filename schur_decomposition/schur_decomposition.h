@@ -11,14 +11,14 @@ class SchurDecomposition {
                 "Scalar must be arithmetic type!");
 
  public:
-  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
   using Precision = Scalar;
-
-  using Rotator = givens_rotation::GivensRotator<Scalar>;
-  using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
   using TridiagonalSymmetric =
       tridiagonal_symmetric::TridiagonalSymmetric<Scalar>;
+  using Rotator = givens_rotation::GivensRotator<Scalar>;
+  using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
+
+  using DynamicMatrix = HessenbergReduction::DynamicMatrix;
+  using DynamicVector = HessenbergReduction::DynamicVector;
 
   SchurDecomposition(Precision precision) : precision_(precision) {
     assert(precision >= 0);
@@ -49,21 +49,25 @@ class SchurDecomposition {
 
   void run_QR_algorithm(DynamicVector* eigenvalues) {
     for (current_size_ = size() - 1; current_size_ >= 2;) {
-      make_shift();
-      process_shift();
-      finish();
-      try_deflate();
+      take_QR_implicit_step();
+      try_to_deflate();
     }
 
     process_submatrix2();
-    read_eigenvalues(eigenvalues);
+    extract_eigenvalues(eigenvalues);
+  }
+
+  void take_QR_implicit_step() {
+    make_shift();
+    process_shift();
+    finish();
   }
 
   void make_shift() {
     Scalar shift = find_wilkinson_shift();
     Rotator rotator = Rotator(diagonals_.get_major_diagonal()(0) - shift,
                               diagonals_.get_side_diagonal()(0));
-    rotate_twice(rotator, 0);
+    rotate_submatrix2(rotator, 0);
     rotator.rotate_right(p_unitary_->block(0, 0, size(), 2));
     current_bulge_ = diagonals_.get_side_diagonal()(1) * rotator.sin();
     diagonals_.get_side_diagonal()(1) *= rotator.cos();
@@ -74,7 +78,7 @@ class SchurDecomposition {
       Scalar tmp = diagonals_.get_side_diagonal()(step - 1);
       Rotator rotator = Rotator(tmp, current_bulge_);
 
-      rotate_twice(rotator, step);
+      rotate_submatrix2(rotator, step);
       rotator.rotate_right(p_unitary_->block(0, step, size(), 2));
       diagonals_.get_side_diagonal()(step - 1) =
           rotator.cos() * tmp + rotator.sin() * current_bulge_;
@@ -87,13 +91,13 @@ class SchurDecomposition {
     Scalar tmp = diagonals_.get_side_diagonal()(current_size_ - 2);
     Rotator rotator = Rotator(tmp, current_bulge_);
 
-    rotate_twice(rotator, current_size_ - 1);
+    rotate_submatrix2(rotator, current_size_ - 1);
     rotator.rotate_right(p_unitary_->block(0, current_size_ - 1, size(), 2));
     diagonals_.get_side_diagonal()(current_size_ - 2) =
         rotator.cos() * tmp + rotator.sin() * current_bulge_;
   }
 
-  void rotate_twice(const Rotator& rotator, int index) {
+  void rotate_submatrix2(const Rotator& rotator, int index) {
     DynamicMatrix square(2, 2);
 
     square << diagonals_.get_major_diagonal()(index),
@@ -113,7 +117,7 @@ class SchurDecomposition {
     Scalar eigenvalue = find_eigenvalue2();
     Rotator rotator = Rotator(diagonals_.get_major_diagonal()(0) - eigenvalue,
                               diagonals_.get_side_diagonal()(0));
-    rotate_twice(rotator, 0);
+    rotate_submatrix2(rotator, 0);
     rotator.rotate_right(p_unitary_->block(0, 0, size(), 2));
   }
 
@@ -147,18 +151,10 @@ class SchurDecomposition {
            std::abs(diagonals_.get_side_diagonal()(current_size_ - 1));
   }
 
-  void try_deflate() {
-    if (check_convergence()) {
+  void try_to_deflate() {
+    if (zero_under_diagonal()) {
       --current_size_;
-      return;
     }
-  }
-
-  bool check_convergence() {
-    return std::abs(diagonals_.get_side_diagonal()(current_size_ - 1)) <
-           precision_ *
-               (std::abs(diagonals_.get_major_diagonal()(current_size_ - 1)) +
-                std::abs(diagonals_.get_major_diagonal()(current_size_)));
   }
 
   void set_internal_resources(const DynamicMatrix& data,
@@ -172,19 +168,27 @@ class SchurDecomposition {
 
   void free_internal_resources() { diagonals_ = {}; }
 
-  void read_eigenvalues(DynamicVector* eigenvalues) {
+  void extract_eigenvalues(DynamicVector* eigenvalues) {
     *eigenvalues = diagonals_.get_major_diagonal();
   }
 
-  int size() { return diagonals_.get_size(); }
+  bool zero_under_diagonal() {
+    return std::abs(diagonals_.get_side_diagonal()(current_size_ - 1)) <
+           precision_ *
+               (std::abs(diagonals_.get_major_diagonal()(current_size_ - 1)) +
+                std::abs(diagonals_.get_major_diagonal()(current_size_)));
+  }
 
   bool near_zero(Scalar value) { return std::abs(value) < precision_; }
 
+  int size() { return diagonals_.get_size(); }
+
+  Precision precision_;
   TridiagonalSymmetric diagonals_;
   DynamicMatrix* p_unitary_;
+
   int current_size_;
   Scalar current_bulge_;
-  Precision precision_;
 };
 
 };  // namespace schur_decomposition
