@@ -21,35 +21,36 @@ class HessenbergReduction {
 
  private:
   void reduce_matrix() {
-    for (int cur_col = 0; cur_col < size() - 2; ++cur_col) {
+    for (int cur_col = 0; cur_col < data_size() - 2; ++cur_col) {
       reduce_column(cur_col);
     }
   }
 
   void reduce_column(int cur_col) {
     HouseholderReflector reflector = HouseholderReflector(
-        p_hessenberg_form_->col(cur_col).bottomRows(size() - cur_col - 1));
-    update_hessenberg_form(reflector, size() - cur_col - 1);
-    update_hessenberg_form(reflector, size() - cur_col - 1);
+        p_hessenberg_form_->col(cur_col).bottomRows(data_size() - cur_col - 1));
+    update_hessenberg_form(data_size() - cur_col - 1, reflector);
+    update_backtrace(data_size() - cur_col - 1, reflector);
   }
 
-  void update_hessenberg_form(const HouseholderReflector& reflector,
-                              int block_size) {
+  void update_hessenberg_form(int block_size,
+                              const HouseholderReflector& reflector) {
     DynamicVector first = reflector.direction();
     DynamicVector second =
-        p_hessenberg_form_->bottomRightCorner(size(), block_size) * first;
+        p_hessenberg_form_->bottomRightCorner(data_size(), block_size) * first;
     second.tail(block_size) -=
         first * (first.transpose() * second.tail(block_size));
     second *= 2;
 
     DynamicMatrix tmp = first * second.transpose();
-    p_hessenberg_form_->bottomLeftCorner(block_size, size()) -= tmp;
-    p_hessenberg_form_->topRightCorner(size(), block_size) -= tmp.transpose();
+    p_hessenberg_form_->bottomLeftCorner(block_size, data_size()) -= tmp;
+    p_hessenberg_form_->topRightCorner(data_size(), block_size) -=
+        tmp.transpose();
   }
 
-  void update_backtrace(const HouseholderReflector& reflector, int block_size) {
+  void update_backtrace(int block_size, const HouseholderReflector& reflector) {
     reflector.reflect_right(
-        p_backtrace_matrix_->bottomRightCorner(size(), block_size));
+        p_backtrace_matrix_->bottomRightCorner(data_size(), block_size));
   }
 
   void set_internal_members(DynamicMatrix* data, DynamicMatrix* backtrace) {
@@ -59,12 +60,12 @@ class HessenbergReduction {
 
     assert(backtrace);
     p_backtrace_matrix_ = backtrace;
-    *p_backtrace_matrix_ = DynamicMatrix::Identity(size(), size());
+    *p_backtrace_matrix_ = DynamicMatrix::Identity(data_size(), data_size());
   }
 
-  int size() {
+  int data_size() {
     assert(p_hessenberg_form_->rows() == p_hessenberg_form_->cols());
-    return (p_hessenberg_form_->rows());
+    return p_hessenberg_form_->rows();
   }
 
   DynamicMatrix* p_hessenberg_form_;
