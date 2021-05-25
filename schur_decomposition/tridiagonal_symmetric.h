@@ -5,6 +5,7 @@ namespace tridiagonal_symmetric {
 template <class Scalar>
 class TridiagonalSymmetric {
  public:
+  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
 
   TridiagonalSymmetric(int size)
@@ -22,6 +23,12 @@ class TridiagonalSymmetric {
     assert(new_major.rows() == new_side.rows() + 1);
     major_diagonal_ = new_major;
     side_diagonal_ = new_side;
+  }
+
+  static TridiagonalSymmetric extract_diagonals(const DynamicMatrix& data) {
+    TridiagonalSymmetric tmp;
+    tmp.set_diagonals(data.diagonal(0), data.diagonal(1));
+    return tmp;
   }
 
   size_t get_size() const { return major_diagonal_.rows(); }
