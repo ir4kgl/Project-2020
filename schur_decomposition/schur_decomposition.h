@@ -49,7 +49,7 @@ class SchurDecomposition {
     cur_size_ = size() - 1;
     while (cur_size_ >= 2) {
       make_QR_iteration();
-      try_deflate();
+      try_to_deflate();
     }
   }
 
@@ -91,37 +91,33 @@ class SchurDecomposition {
     reflector.reflect_right(p_unitary_->block(0, step + 1, size(), length));
   }
 
-  void try_deflate() {
+  void try_to_deflate() {
     if (zero_under_diagonal(cur_size_)) {
-      deflate_once();
+      decrement_cur_size(1);
       return;
     }
     if (zero_under_diagonal(cur_size_ - 1)) {
-      deflate_twice();
+      decrement_cur_size(2);
     }
   }
 
-  void deflate_once() {
-    (*p_schur_form_)(cur_size_, cur_size_ - 1) = 0;
-    cur_size_ -= 1;
-  }
-
-  void deflate_twice() {
-    (*p_schur_form_)(cur_size_ - 1, cur_size_ - 2) = 0;
-    cur_size_ -= 2;
+  void decrement_cur_size(int decrement) {
+    (*p_schur_form_)(cur_size_ + 1 - decrement, cur_size_ - decrement) = 0;
+    cur_size_ -= decrement;
   }
 
   bool zero_under_diagonal(int index) {
-    return (std::abs((*p_schur_form_)(index, index - 1)) < precision_);
+    return std::abs((*p_schur_form_)(index, index - 1)) < precision_;
   }
 
   Vector3 find_matching_column() {
     Scalar trace = find_bottom_corner_trace();
     Scalar det = find_bottom_corner_det();
+
     DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
-    Matrix3 starter_block = top_corner * top_corner - trace * top_corner +
-                            det * Matrix3::Identity();
-    return starter_block.col(0);
+    Matrix3 starter_submatrix = top_corner * top_corner - trace * top_corner +
+                                det * Matrix3::Identity();
+    return starter_submatrix.col(0);
   }
 
   Scalar find_bottom_corner_trace() {
