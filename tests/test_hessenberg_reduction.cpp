@@ -14,9 +14,23 @@ constexpr const long double precision = 1e-15;
 constexpr const int number_of_tests = 50;
 constexpr const int matrix_size_max = 128;
 
+bool is_hessenberg_form(const DynamicMatrix& data, int size) {
+  return data.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
+}
+
 bool are_indistinguishable(const DynamicMatrix& first,
                            const DynamicMatrix& second, int size) {
   return ((first - second).norm() < precision * size * size);
+}
+
+void process_hessenberg_check_failed(const DynamicMatrix& data,
+                                     const DynamicMatrix& old_data,
+                                     int test_id) {
+  cout << "test failed in HessenbergReduction::run():\n\n";
+  cout << "input: M =\n" << old_data << "\n\n";
+  cout << "expected M is upper Hessenberg form;\n\n";
+  cout << "reduction to Hessenberg form result: M =\n" << data << "\n\n";
+  cout << "test id:\t" << test_id << "\n";
 }
 
 void process_unitary_check_failed(const DynamicMatrix& data,
@@ -45,6 +59,11 @@ bool simple_check(int size, int test_id) {
   Algorithm reduction;
   DynamicMatrix old_data = data;
   reduction.run(&data, &backtrace);
+
+  if (!is_hessenberg_form(data, size)) {
+    process_hessenberg_check_failed(data, old_data, size);
+    return false;
+  }
 
   if (!backtrace.isUnitary()) {
     process_unitary_check_failed(data, backtrace, test_id);
