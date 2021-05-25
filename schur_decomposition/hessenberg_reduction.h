@@ -12,6 +12,7 @@ class HessenbergReduction {
   using HouseholderReflector =
       householder_reflection::HouseholderReflector<Scalar>;
   using DynamicMatrix = HouseholderReflector::DynamicMatrix;
+  using DynamicVector = HouseholderReflector::DynamicVector;
 
   void run(DynamicMatrix* data, DynamicMatrix* backtrace) {
     set_internal_members(data, backtrace);
@@ -26,15 +27,27 @@ class HessenbergReduction {
   }
 
   void reduce_column(int cur_col) {
-    int cur_block_size = data_size() - cur_col - 1;
-    HouseholderReflector reflector = HouseholderReflector(
-        p_hessenberg_form_->col(cur_col).bottomRows(cur_block_size));
+    HouseholderReflector reflector =
+        HouseholderReflector(find_reduced_col(cur_col));
+    update_hessenberg(cur_col, reflector);
+    update_backtrace(cur_col, reflector);
+  }
+
+  DynamicVector find_reduced_col(int cur_col) {
+    return p_hessenberg_form_->block(cur_col + 1, cur_col,
+                                     data_size() - cur_col - 1, 1);
+  }
+
+  void update_hessenberg(int cur_col, const HouseholderReflector& reflector) {
     reflector.reflect_left(p_hessenberg_form_->bottomRightCorner(
-        cur_block_size, data_size() - cur_col));
-    reflector.reflect_right(
-        p_hessenberg_form_->bottomRightCorner(data_size(), cur_block_size));
-    reflector.reflect_right(
-        p_backtrace_matrix_->bottomRightCorner(data_size(), cur_block_size));
+        data_size() - cur_col - 1, data_size() - cur_col));
+    reflector.reflect_right(p_hessenberg_form_->bottomRightCorner(
+        data_size(), data_size() - cur_col - 1));
+  }
+
+  void update_backtrace(int cur_col, const HouseholderReflector& reflector) {
+    reflector.reflect_right(p_backtrace_matrix_->bottomRightCorner(
+        data_size(), data_size() - cur_col - 1));
   }
 
   void set_internal_members(DynamicMatrix* data, DynamicMatrix* backtrace) {
