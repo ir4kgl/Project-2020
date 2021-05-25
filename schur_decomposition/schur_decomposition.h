@@ -110,14 +110,13 @@ class SchurDecomposition {
     return std::abs((*p_schur_form_)(index, index - 1)) < precision_;
   }
 
-  Vector3 find_matching_column() {
+  Vector3 find_matching_column() { return shifted_submatrix3().col(0); }
+
+  Matrix3 shifted_submatrix3() {
     Scalar trace = find_bottom_corner_trace();
     Scalar det = find_bottom_corner_det();
-
-    DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
-    Matrix3 starter_submatrix = top_corner * top_corner - trace * top_corner +
-                                det * Matrix3::Identity();
-    return starter_submatrix.col(0);
+    DynamicBlock corner3 = p_schur_form_->topLeftCorner(3, 3);
+    return corner3 * corner3 - trace * corner3 + det * Matrix3::Identity();
   }
 
   Scalar find_bottom_corner_trace() {
