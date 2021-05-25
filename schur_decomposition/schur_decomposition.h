@@ -45,71 +45,71 @@ class SchurDecomposition {
   }
 
   void run_QR_algorithm() {
-    for (int cur_size = size() - 1; cur_size >= 2;) {
-      start(cur_size);
-      process(cur_size);
-      finish(cur_size);
-      try_deflate(&cur_size);
+    for (cur_size_ = size() - 1; cur_size_ >= 2;) {
+      start();
+      process();
+      finish();
+      try_deflate();
     }
   }
 
-  void start(int cur_size) {
-    Reflector reflector = Reflector(find_starter_column(cur_size));
+  void start() {
+    Reflector reflector = Reflector(find_starter_column());
 
     reflector.reflect_left(p_schur_form_->block(0, 0, 3, size()));
     reflector.reflect_right(
-        p_schur_form_->block(0, 0, std::min(cur_size, 3) + 1, 3));
+        p_schur_form_->block(0, 0, std::min(cur_size_, 3) + 1, 3));
     reflector.reflect_right(p_unitary_->block(0, 0, size(), 3));
   }
 
-  void process(int cur_size) {
-    for (int step = 0; step <= cur_size - 3; ++step) {
+  void process() {
+    for (int step = 0; step <= cur_size_ - 3; ++step) {
       Reflector reflector =
           Reflector(p_schur_form_->block(step + 1, step, 3, 1));
 
       reflector.reflect_left(
           p_schur_form_->block(step + 1, step, 3, size() - step));
       reflector.reflect_right(p_schur_form_->block(
-          0, step + 1, std::min(cur_size, step + 4) + 1, 3));
+          0, step + 1, std::min(cur_size_, step + 4) + 1, 3));
       reflector.reflect_right(p_unitary_->block(0, step + 1, size(), 3));
     }
   }
 
-  void finish(int cur_size) {
+  void finish() {
     Reflector reflector =
-        Reflector(p_schur_form_->block(cur_size - 1, cur_size - 2, 2, 1));
+        Reflector(p_schur_form_->block(cur_size_ - 1, cur_size_ - 2, 2, 1));
 
-    reflector.reflect_left(p_schur_form_->block(cur_size - 1, cur_size - 2, 2,
-                                                size() - cur_size + 2));
+    reflector.reflect_left(p_schur_form_->block(cur_size_ - 1, cur_size_ - 2, 2,
+                                                size() - cur_size_ + 2));
     reflector.reflect_right(
-        p_schur_form_->block(0, cur_size - 1, cur_size + 1, 2));
-    reflector.reflect_right(p_unitary_->block(0, cur_size - 1, size(), 2));
+        p_schur_form_->block(0, cur_size_ - 1, cur_size_ + 1, 2));
+    reflector.reflect_right(p_unitary_->block(0, cur_size_ - 1, size(), 2));
   }
 
-  void try_deflate(int* p_cur_size) {
-    if (near_zero((*p_schur_form_)(*p_cur_size, *p_cur_size - 1))) {
-      try_deflate_once(p_cur_size);
+  void try_deflate() {
+    if (near_zero((*p_schur_form_)(cur_size_, cur_size_ - 1))) {
+      deflate_once();
       return;
     }
 
-    if (near_zero((*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2))) {
-      try_deflate_twice(p_cur_size);
+    if (near_zero((*p_schur_form_)(cur_size_ - 1, cur_size_ - 2))) {
+      deflate_twice();
     }
   }
 
-  void try_deflate_once(int* p_cur_size) {
-    (*p_schur_form_)(*p_cur_size, *p_cur_size - 1) = 0;
-    *p_cur_size -= 1;
+  void deflate_once() {
+    (*p_schur_form_)(cur_size_, cur_size_ - 1) = 0;
+    cur_size_ -= 1;
   }
 
-  void try_deflate_twice(int* p_cur_size) {
-    (*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2) = 0;
-    *p_cur_size -= 2;
+  void deflate_twice() {
+    (*p_schur_form_)(cur_size_ - 1, cur_size_ - 2) = 0;
+    cur_size_ -= 2;
   }
 
-  Vector3 find_starter_column(int cur_size) {
-    Scalar trace = find_bottom_corner_trace(cur_size);
-    Scalar det = find_bottom_corner_det(cur_size);
+  Vector3 find_starter_column() {
+    Scalar trace = find_bottom_corner_trace();
+    Scalar det = find_bottom_corner_det();
 
     DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
     Matrix3 starter_block = top_corner * top_corner - trace * top_corner +
@@ -117,12 +117,13 @@ class SchurDecomposition {
     return starter_block.col(0);
   }
 
-  Scalar find_bottom_corner_trace(int cur_size) {
-    return p_schur_form_->block(cur_size - 1, cur_size - 1, 2, 2).trace();
+  Scalar find_bottom_corner_trace() {
+    return p_schur_form_->block(cur_size_ - 1, cur_size_ - 1, 2, 2).trace();
   }
 
-  Scalar find_bottom_corner_det(int cur_size) {
-    return p_schur_form_->block(cur_size - 1, cur_size - 1, 2, 2).determinant();
+  Scalar find_bottom_corner_det() {
+    return p_schur_form_->block(cur_size_ - 1, cur_size_ - 1, 2, 2)
+        .determinant();
   }
 
   bool near_zero(Scalar value) { return std::abs(value) < precision_; }
@@ -146,6 +147,7 @@ class SchurDecomposition {
   Precision precision_;
   DynamicMatrix* p_schur_form_;
   DynamicMatrix* p_unitary_;
+  int cur_size_;
 };
 
 };  // namespace schur_decomposition
