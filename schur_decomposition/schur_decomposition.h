@@ -48,84 +48,57 @@ class SchurDecomposition {
   }
 
   void run_QR_algorithm(DynamicVector* eigenvalues) {
-    for (current_size_ = size() - 1; current_size_ >= 2;) {
+    current_size_ = size() - 1;
+    while (current_size_ >= 1) {
       take_QR_implicit_step();
       try_to_deflate();
     }
 
-    process_submatrix2();
     extract_eigenvalues(eigenvalues);
   }
 
   void take_QR_implicit_step() {
-    make_shift();
-    process_shift();
-    finish();
+    set_matching_column();
+    restore_tridiagonal_form();
   }
 
-  void make_shift() {
-    Scalar shift = find_wilkinson_shift();
-    Rotator rotator = Rotator(diagonals_.get_major_diagonal()(0) - shift,
-                              diagonals_.get_side_diagonal()(0));
-    rotate_submatrix2(rotator, 0);
-    rotator.rotate_right(p_unitary_->block(0, 0, size(), 2));
-    current_bulge_ = diagonals_.get_side_diagonal()(1) * rotator.sin();
-    diagonals_.get_side_diagonal()(1) *= rotator.cos();
+  void set_matching_column() {
+    Rotator rotator = Rotator(
+        diagonals_.get_major_diagonal()(0) - choose_shift_approximation(),
+        diagonals_.get_side_diagonal()(0));
+    update_diagonals(rotator, 0);
+    update_unitary(rotator, 0);
+    if (current_size_ > 1) {
+      save_current_bulge(rotator, 0);
+      update_side_diagonal(rotator, 0);
+    };
   }
 
-  void process_shift() {
-    for (int step = 1; step <= current_size_ - 2; ++step) {
-      Scalar tmp = diagonals_.get_side_diagonal()(step - 1);
-      Rotator rotator = Rotator(tmp, current_bulge_);
-
-      rotate_submatrix2(rotator, step);
-      rotator.rotate_right(p_unitary_->block(0, step, size(), 2));
-      diagonals_.get_side_diagonal()(step - 1) =
-          rotator.cos() * tmp + rotator.sin() * current_bulge_;
-      current_bulge_ = diagonals_.get_side_diagonal()(step + 1) * rotator.sin();
-      diagonals_.get_side_diagonal()(step + 1) *= rotator.cos();
+  void restore_tridiagonal_form() {
+    for (int step = 1; step <= current_size_ - 1; ++step) {
+      Rotator rotator = Rotator(get_rotated_item(step), current_bulge_);
+      update_diagonals(rotator, step);
+      update_unitary(rotator, step);
+      if (step != current_size_ - 1) {
+        save_current_bulge(rotator, step);
+        update_side_diagonal(rotator, step);
+      }
     }
   }
 
-  void finish() {
-    Scalar tmp = diagonals_.get_side_diagonal()(current_size_ - 2);
-    Rotator rotator = Rotator(tmp, current_bulge_);
-
-    rotate_submatrix2(rotator, current_size_ - 1);
-    rotator.rotate_right(p_unitary_->block(0, current_size_ - 1, size(), 2));
-    diagonals_.get_side_diagonal()(current_size_ - 2) =
-        rotator.cos() * tmp + rotator.sin() * current_bulge_;
+  Scalar choose_shift_approximation() {
+    if (current_size_ > 1) {
+      return find_wilkinson_shift();
+    }
+    return find_eigenvalue();
   }
 
-  void rotate_submatrix2(const Rotator& rotator, int index) {
-    DynamicMatrix square(2, 2);
-
-    square << diagonals_.get_major_diagonal()(index),
-        diagonals_.get_side_diagonal()(index),
-        diagonals_.get_side_diagonal()(index),
-        diagonals_.get_major_diagonal()(index + 1);
-
-    rotator.rotate_left(&square);
-    rotator.rotate_right(&square);
-
-    diagonals_.get_major_diagonal()(index) = square(0, 0);
-    diagonals_.get_major_diagonal()(index + 1) = square(1, 1);
-    diagonals_.get_side_diagonal()(index) = square(0, 1);
-  }
-
-  void process_submatrix2() {
-    Scalar eigenvalue = find_eigenvalue2();
-    Rotator rotator = Rotator(diagonals_.get_major_diagonal()(0) - eigenvalue,
-                              diagonals_.get_side_diagonal()(0));
-    rotate_submatrix2(rotator, 0);
-    rotator.rotate_right(p_unitary_->block(0, 0, size(), 2));
-  }
-
-  Scalar find_eigenvalue2() {
+  Scalar find_eigenvalue() {
     DynamicMatrix square(2, 2);
     square << diagonals_.get_major_diagonal()(0),
         diagonals_.get_side_diagonal()(0), diagonals_.get_side_diagonal()(0),
         diagonals_.get_major_diagonal()(1);
+
     Scalar trace = square.trace();
     Scalar det = square.determinant();
     return (trace + std::sqrt(trace * trace - 4 * det)) / 2;
@@ -151,10 +124,55 @@ class SchurDecomposition {
            std::abs(diagonals_.get_side_diagonal()(current_size_ - 1));
   }
 
+  void update_diagonals(const Rotator& rotator, int step) {
+    DynamicMatrix square(2, 2);
+
+    square << diagonals_.get_major_diagonal()(step),
+        diagonals_.get_side_diagonal()(step),
+        diagonals_.get_side_diagonal()(step),
+        diagonals_.get_major_diagonal()(step + 1);
+
+    rotator.rotate_left(&square);
+    rotator.rotate_right(&square);
+
+    diagonals_.get_major_diagonal()(step) = square(0, 0);
+    diagonals_.get_major_diagonal()(step + 1) = square(1, 1);
+    diagonals_.get_side_diagonal()(step) = square(0, 1);
+
+    if (step > 0) {
+      diagonals_.get_side_diagonal()(step - 1) *= rotator.cos();
+      diagonals_.get_side_diagonal()(step - 1) +=
+          rotator.sin() * current_bulge_;
+    }
+  }
+
+  void update_side_diagonal(const Rotator& rotator, int step) {
+    diagonals_.get_side_diagonal()(step + 1) *= rotator.cos();
+  }
+
+  void update_unitary(const Rotator& rotator, int step) {
+    rotator.rotate_right(p_unitary_->block(0, step, size(), 2));
+  }
+
+  void save_current_bulge(const Rotator& rotator, int step) {
+    current_bulge_ = diagonals_.get_side_diagonal()(step + 1) * rotator.sin();
+  }
+
+  Scalar get_rotated_item(int step) {
+    return diagonals_.get_side_diagonal()(step - 1);
+  }
+
   void try_to_deflate() {
     if (zero_under_diagonal()) {
       --current_size_;
     }
+  }
+
+  bool zero_under_diagonal() {
+    return std::abs(diagonals_.get_side_diagonal()(current_size_ - 1)) <
+           precision_ *
+               (std::abs(diagonals_.get_major_diagonal()(current_size_ - 1)) +
+                std::abs(diagonals_.get_major_diagonal()(current_size_)));
   }
 
   void set_internal_resources(const DynamicMatrix& data,
@@ -170,13 +188,6 @@ class SchurDecomposition {
 
   void extract_eigenvalues(DynamicVector* eigenvalues) {
     *eigenvalues = diagonals_.get_major_diagonal();
-  }
-
-  bool zero_under_diagonal() {
-    return std::abs(diagonals_.get_side_diagonal()(current_size_ - 1)) <
-           precision_ *
-               (std::abs(diagonals_.get_major_diagonal()(current_size_ - 1)) +
-                std::abs(diagonals_.get_major_diagonal()(current_size_)));
   }
 
   bool near_zero(Scalar value) { return std::abs(value) < precision_; }
