@@ -28,7 +28,7 @@ class HessenbergReduction {
 
   void reduce_column(int cur_col) {
     HouseholderReflector reflector =
-        HouseholderReflector(find_reduced_col(col));
+        HouseholderReflector(find_reduced_col(cur_col));
     update_hessenberg_form(data_size() - cur_col - 1, reflector);
     update_backtrace(data_size() - cur_col - 1, reflector);
   }
