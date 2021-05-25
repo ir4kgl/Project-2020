@@ -9,10 +9,10 @@ class HessenbergReduction {
                 "Scalar must be arithmetic type!");
 
  public:
-  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
   using HouseholderReflector =
       householder_reflection::HouseholderReflector<Scalar>;
+  using DynamicMatrix = HouseholderReflector::DynamicMatrix;
+  using DynamicVector = HouseholderReflector::DynamicVector;
 
   void run(DynamicMatrix* data, DynamicMatrix* backtrace) {
     set_internal_resources(data, backtrace);
@@ -27,10 +27,14 @@ class HessenbergReduction {
   }
 
   void reduce_column(int cur_col) {
-    HouseholderReflector reflector = HouseholderReflector(
-        p_hessenberg_form_->col(cur_col).bottomRows(data_size() - cur_col - 1));
+    HouseholderReflector reflector =
+        HouseholderReflector(find_reduced_col(col));
     update_hessenberg_form(data_size() - cur_col - 1, reflector);
     update_backtrace(data_size() - cur_col - 1, reflector);
+  }
+
+  DynamicVector find_reduced_col(int col) {
+    return p_hessenberg_form_->col(col).bottomRows(data_size() - col - 1);
   }
 
   void update_hessenberg_form(int block_size,
