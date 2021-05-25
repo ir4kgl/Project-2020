@@ -26,7 +26,7 @@ class SchurDecomposition {
 
   void run(const DynamicMatrix& data, DynamicVector* eigenvalues,
            DynamicMatrix* unitary) {
-    set_internal_members(data, eigenvalues, unitary);
+    set_internal_resources(data, eigenvalues, unitary);
     reduce_to_hessenberg_form(data);
     run_QR_algorithm(eigenvalues);
     free_internal_resources();
@@ -161,9 +161,9 @@ class SchurDecomposition {
                 std::abs(diagonals_.get_major_diagonal()(current_size_)));
   }
 
-  void set_internal_members(const DynamicMatrix& data,
-                            DynamicVector* eigenvalues,
-                            DynamicMatrix* unitary) {
+  void set_internal_resources(const DynamicMatrix& data,
+                              DynamicVector* eigenvalues,
+                              DynamicMatrix* unitary) {
     assert(data.rows() == data.cols());
     assert(eigenvalues);
     assert(unitary);

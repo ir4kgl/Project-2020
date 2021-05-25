@@ -15,7 +15,7 @@ class HessenbergReduction {
       householder_reflection::HouseholderReflector<Scalar>;
 
   void run(DynamicMatrix* data, DynamicMatrix* backtrace) {
-    set_internal_members(data, backtrace);
+    set_internal_resources(data, backtrace);
     reduce_matrix();
   }
 
@@ -53,7 +53,7 @@ class HessenbergReduction {
         p_backtrace_matrix_->bottomRightCorner(data_size(), block_size));
   }
 
-  void set_internal_members(DynamicMatrix* data, DynamicMatrix* backtrace) {
+  void set_internal_resources(DynamicMatrix* data, DynamicMatrix* backtrace) {
     assert(data);
     assert(data->rows() == data->cols());
     p_hessenberg_form_ = data;
