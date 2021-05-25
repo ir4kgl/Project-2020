@@ -3,15 +3,15 @@
 
 namespace hessenberg_reduction {
 
-using householder_reflection::HouseholderReflector;
-using std::is_arithmetic_v;
-
 template <typename Scalar>
 class HessenbergReduction {
-  static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
+  static_assert(std::is_arithmetic_v<Scalar>,
+                "Scalar must be arithmetic type!");
 
  public:
-  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
+  using HouseholderReflector =
+      householder_reflection::HouseholderReflector<Scalar>;
+  using DynamicMatrix = HouseholderReflector::DynamicMatrix;
 
   void run(DynamicMatrix* data, DynamicMatrix* backtrace) {
     assert(data->rows() == data->cols());
@@ -33,7 +33,7 @@ class HessenbergReduction {
   }
 
   void reduce_column(int cur_col, int cur_block_size) {
-    reflector_ = HouseholderReflector<Scalar>(
+    reflector_ = HouseholderReflector(
         p_hessenberg_form_->col(cur_col).bottomRows(cur_block_size));
     reflector_.reflect_left(p_hessenberg_form_->bottomRightCorner(
         cur_block_size, data_size_ - cur_col));
@@ -45,7 +45,7 @@ class HessenbergReduction {
 
   DynamicMatrix* p_hessenberg_form_;
   DynamicMatrix* p_backtrace_matrix_;
-  HouseholderReflector<Scalar> reflector_;
+  HouseholderReflector reflector_;
 
   int data_size_;
 };

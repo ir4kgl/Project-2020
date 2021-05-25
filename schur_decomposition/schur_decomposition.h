@@ -4,13 +4,10 @@
 
 namespace schur_decomposition {
 
-using std::abs;
-using std::is_arithmetic_v;
-using std::min;
-
 template <typename Scalar>
 class SchurDecomposition {
-  static_assert(is_arithmetic_v<Scalar>, "Scalar must be arithmetic type!");
+  static_assert(std::is_arithmetic_v<Scalar>,
+                "Scalar must be arithmetic type!");
 
  public:
   using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
@@ -69,7 +66,7 @@ class SchurDecomposition {
 
     reflector_.reflect_left(p_schur_form_->block(0, 0, 3, data_size_));
     reflector_.reflect_right(
-        p_schur_form_->block(0, 0, min(cur_size, 3) + 1, 3));
+        p_schur_form_->block(0, 0, std::min(cur_size, 3) + 1, 3));
     reflector_.reflect_right(p_unitary_->block(0, 0, data_size_, 3));
   }
 
@@ -79,8 +76,8 @@ class SchurDecomposition {
 
       reflector_.reflect_left(
           p_schur_form_->block(step + 1, step, 3, data_size_ - step));
-      reflector_.reflect_right(
-          p_schur_form_->block(0, step + 1, min(cur_size, step + 4) + 1, 3));
+      reflector_.reflect_right(p_schur_form_->block(
+          0, step + 1, std::min(cur_size, step + 4) + 1, 3));
       reflector_.reflect_right(p_unitary_->block(0, step + 1, data_size_, 3));
     }
   }
@@ -137,7 +134,7 @@ class SchurDecomposition {
     return p_schur_form_->block(cur_size - 1, cur_size - 1, 2, 2).determinant();
   }
 
-  bool near_zero(Scalar value) { return abs(value) < precision_; }
+  bool near_zero(Scalar value) { return std::abs(value) < precision_; }
 
   Precision precision_;
   DynamicMatrix* p_schur_form_;
