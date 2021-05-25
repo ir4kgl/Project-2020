@@ -26,15 +26,7 @@ class SchurDecomposition {
 
   void run(const DynamicMatrix& data, DynamicMatrix* schur_form,
            DynamicMatrix* unitary) {
-    assert(data.rows() == data.cols());
-    assert(schur_form);
-    assert(unitary);
-
-    data_size_ = data.rows();
-    p_schur_form_ = schur_form;
-    p_unitary_ = unitary;
-    *p_schur_form_ = data;
-
+    set_internal_members(data, schur_form, unitary);
     reduce_to_hessenberg_form();
     run_QR_algorithm();
   }
@@ -53,65 +45,64 @@ class SchurDecomposition {
   }
 
   void run_QR_algorithm() {
-    for (int cur_size = data_size_ - 1; cur_size >= 2;) {
+    for (int cur_size = size() - 1; cur_size >= 2;) {
       start(cur_size);
       process(cur_size);
       finish(cur_size);
-      deflate(&cur_size);
+      try_deflate(&cur_size);
     }
   }
 
   void start(int cur_size) {
-    reflector_ = Reflector(find_starter_column(cur_size));
+    Reflector reflector = Reflector(find_starter_column(cur_size));
 
-    reflector_.reflect_left(p_schur_form_->block(0, 0, 3, data_size_));
-    reflector_.reflect_right(
+    reflector.reflect_left(p_schur_form_->block(0, 0, 3, size()));
+    reflector.reflect_right(
         p_schur_form_->block(0, 0, std::min(cur_size, 3) + 1, 3));
-    reflector_.reflect_right(p_unitary_->block(0, 0, data_size_, 3));
+    reflector.reflect_right(p_unitary_->block(0, 0, size(), 3));
   }
 
   void process(int cur_size) {
     for (int step = 0; step <= cur_size - 3; ++step) {
-      reflector_ = Reflector(p_schur_form_->block(step + 1, step, 3, 1));
+      Reflector reflector =
+          Reflector(p_schur_form_->block(step + 1, step, 3, 1));
 
-      reflector_.reflect_left(
-          p_schur_form_->block(step + 1, step, 3, data_size_ - step));
-      reflector_.reflect_right(p_schur_form_->block(
+      reflector.reflect_left(
+          p_schur_form_->block(step + 1, step, 3, size() - step));
+      reflector.reflect_right(p_schur_form_->block(
           0, step + 1, std::min(cur_size, step + 4) + 1, 3));
-      reflector_.reflect_right(p_unitary_->block(0, step + 1, data_size_, 3));
+      reflector.reflect_right(p_unitary_->block(0, step + 1, size(), 3));
     }
   }
 
   void finish(int cur_size) {
-    reflector_ =
+    Reflector reflector =
         Reflector(p_schur_form_->block(cur_size - 1, cur_size - 2, 2, 1));
 
-    reflector_.reflect_left(p_schur_form_->block(cur_size - 1, cur_size - 2, 2,
-                                                 data_size_ - cur_size + 2));
-    reflector_.reflect_right(
+    reflector.reflect_left(p_schur_form_->block(cur_size - 1, cur_size - 2, 2,
+                                                size() - cur_size + 2));
+    reflector.reflect_right(
         p_schur_form_->block(0, cur_size - 1, cur_size + 1, 2));
-    reflector_.reflect_right(p_unitary_->block(0, cur_size - 1, data_size_, 2));
-
-    reflector_ = {};
+    reflector.reflect_right(p_unitary_->block(0, cur_size - 1, size(), 2));
   }
 
-  void deflate(int* p_cur_size) {
+  void try_deflate(int* p_cur_size) {
     if (near_zero((*p_schur_form_)(*p_cur_size, *p_cur_size - 1))) {
-      deflate_once(p_cur_size);
+      try_deflate_once(p_cur_size);
       return;
     }
 
     if (near_zero((*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2))) {
-      deflate_twice(p_cur_size);
+      try_deflate_twice(p_cur_size);
     }
   }
 
-  void deflate_once(int* p_cur_size) {
+  void try_deflate_once(int* p_cur_size) {
     (*p_schur_form_)(*p_cur_size, *p_cur_size - 1) = 0;
     *p_cur_size -= 1;
   }
 
-  void deflate_twice(int* p_cur_size) {
+  void try_deflate_twice(int* p_cur_size) {
     (*p_schur_form_)(*p_cur_size - 1, *p_cur_size - 2) = 0;
     *p_cur_size -= 2;
   }
@@ -136,12 +127,25 @@ class SchurDecomposition {
 
   bool near_zero(Scalar value) { return std::abs(value) < precision_; }
 
+  void set_internal_members(const DynamicMatrix& data,
+                            DynamicMatrix* schur_form, DynamicMatrix* unitary) {
+    assert(data.rows() == data.cols());
+    assert(schur_form);
+    assert(unitary);
+
+    p_schur_form_ = schur_form;
+    p_unitary_ = unitary;
+    *p_schur_form_ = data;
+  }
+
+  int size() {
+    assert(p_schur_form_->rows() == p_schur_form_->cols());
+    return p_schur_form_->rows();
+  }
+
   Precision precision_;
   DynamicMatrix* p_schur_form_;
   DynamicMatrix* p_unitary_;
-
-  Reflector reflector_;
-  int data_size_;
 };
 
 };  // namespace schur_decomposition
