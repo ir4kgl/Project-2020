@@ -10,15 +10,15 @@ class SchurDecomposition {
                 "Scalar must be arithmetic type!");
 
  public:
-  using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+  using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
+  using Rotator = givens_rotation::GivensRotator<Scalar>;
+  using Reflector = HessenbergReduction::HouseholderReflector;
+
+  using DynamicMatrix = HessenbergReduction::DynamicMatrix;
+  using DynamicBlock = Eigen::Block<DynamicMatrix>;
   using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
   using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
   using Precision = Scalar;
-
-  using Rotator = givens_rotation::GivensRotator<Scalar>;
-  using Reflector = householder_reflection::HouseholderReflector<Scalar>;
-  using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
 
   SchurDecomposition(Precision precision) : precision_(precision) {
     assert(precision >= 0);
