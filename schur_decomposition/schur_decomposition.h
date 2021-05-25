@@ -15,6 +15,7 @@ class SchurDecomposition {
   using Reflector = HessenbergReduction::HouseholderReflector;
 
   using DynamicMatrix = HessenbergReduction::DynamicMatrix;
+  using DynamicVector = HessenbergReduction::DynamicVector;
   using DynamicBlock = Eigen::Block<DynamicMatrix>;
   using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
   using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
@@ -59,30 +60,29 @@ class SchurDecomposition {
 
   void set_matching_column() {
     Reflector reflector = Reflector(find_matching_column());
-
-    reflector.reflect_left(p_schur_form_->block(0, 0, 3, size()));
-    reflector.reflect_right(
-        p_schur_form_->block(0, 0, std::min(cur_size_, 3) + 1, 3));
-    reflector.reflect_right(p_unitary_->block(0, 0, size(), 3));
+    update_schur_form(reflector, -1, 3);
+    update_unitary(reflector, -1, 3);
   }
 
   void restore_hessenberg_form() {
     int step = 0;
     for (; step <= cur_size_ - 3; ++step) {
-      Reflector reflector =
-          Reflector(p_schur_form_->block(step + 1, step, 3, 1));
+      Reflector reflector = Reflector(get_reflected_column(step, 3));
       update_schur_form(reflector, step, 3);
       update_unitary(reflector, step, 3);
     }
-
-    Reflector reflector = Reflector(p_schur_form_->block(step + 1, step, 2, 1));
+    Reflector reflector = Reflector(get_reflected_column(step, 2));
     update_schur_form(reflector, step, 2);
     update_unitary(reflector, step, 2);
   }
 
+  DynamicVector get_reflected_column(int step, int rows) {
+    return p_schur_form_->block(step + 1, step, rows, 1);
+  }
+
   void update_schur_form(const Reflector& reflector, int step, int length) {
-    reflector.reflect_left(
-        p_schur_form_->block(step + 1, step, length, size() - step));
+    reflector.reflect_left(p_schur_form_->block(
+        step + 1, std::max(step, 0), length, size() - std::max(step, 0)));
     reflector.reflect_right(p_schur_form_->block(
         0, step + 1, std::min(cur_size_, step + 4) + 1, length));
   }
@@ -92,12 +92,11 @@ class SchurDecomposition {
   }
 
   void try_deflate() {
-    if (near_zero((*p_schur_form_)(cur_size_, cur_size_ - 1))) {
+    if (zero_under_diagonal(cur_size_)) {
       deflate_once();
       return;
     }
-
-    if (near_zero((*p_schur_form_)(cur_size_ - 1, cur_size_ - 2))) {
+    if (zero_under_diagonal(cur_size_ - 1)) {
       deflate_twice();
     }
   }
@@ -112,10 +111,13 @@ class SchurDecomposition {
     cur_size_ -= 2;
   }
 
+  bool zero_under_diagonal(int index) {
+    return (std::abs((*p_schur_form_)(index, index - 1)) < precision_);
+  }
+
   Vector3 find_matching_column() {
     Scalar trace = find_bottom_corner_trace();
     Scalar det = find_bottom_corner_det();
-
     DynamicBlock top_corner = p_schur_form_->topLeftCorner(3, 3);
     Matrix3 starter_block = top_corner * top_corner - trace * top_corner +
                             det * Matrix3::Identity();
@@ -138,12 +140,9 @@ class SchurDecomposition {
     p_schur_form_ = schur_form;
     assert(data.rows() == data.cols());
     *p_schur_form_ = data;
-
     assert(unitary);
     p_unitary_ = unitary;
   }
-
-  bool near_zero(Scalar value) { return std::abs(value) < precision_; }
 
   int size() {
     assert(p_schur_form_->rows() == p_schur_form_->cols());
