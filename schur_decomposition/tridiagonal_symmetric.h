@@ -20,11 +20,10 @@ class TridiagonalSymmetric {
 
   DynamicVector& get_side_diagonal() { return side_diagonal_; }
 
-  void set_diagonals(const DynamicVector& new_major,
-                     const DynamicVector& new_side) {
+  void set_diagonals(DynamicVector new_major, DynamicVector new_side) {
     assert(new_major.rows() == new_side.rows() + 1);
-    major_diagonal_ = new_major;
-    side_diagonal_ = new_side;
+    major_diagonal_ = std::move(new_major);
+    side_diagonal_ = std::move(new_side);
   }
 
   static TridiagonalSymmetric extract_diagonals(const DynamicMatrix& data) {
@@ -33,7 +32,10 @@ class TridiagonalSymmetric {
     return tmp;
   }
 
-  size_t get_size() const { return major_diagonal_.rows(); }
+  int get_size() const {
+    assert(major_diagonal_.rows() == side_diagonal_.rows() + 1);
+    return major_diagonal_.rows();
+  }
 
  private:
   DynamicVector major_diagonal_;
