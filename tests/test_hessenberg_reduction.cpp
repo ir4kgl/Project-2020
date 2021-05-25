@@ -8,8 +8,6 @@ namespace test_hessenberg_reduction {
 
 using std::cout;
 using Algorithm = hessenberg_reduction::HessenbergReduction<double>;
-using TridiagonalSymmetric =
-    tridiagonal_symmetric::TridiagonalSymmetric<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double precision = 1e-15;
@@ -42,25 +40,18 @@ void process_bad_restore(const DynamicMatrix& old_data,
 bool simple_check(int size, int test_id) {
   DynamicMatrix data = DynamicMatrix::Random(size, size);
   data *= data.transpose();
-
   DynamicMatrix backtrace;
-  TridiagonalSymmetric result(size);
 
   Algorithm reduction;
-  reduction.run(data, &result, &backtrace);
+  DynamicMatrix old_data = data;
+  reduction.run(&data, &backtrace);
 
   if (!backtrace.isUnitary()) {
     process_unitary_check_failed(data, backtrace, test_id);
     return false;
   }
-
-  DynamicMatrix restored_data = DynamicMatrix::Zero(size, size);
-  restored_data.diagonal(0) = result.get_major_diagonal();
-  restored_data.diagonal(1) = result.get_side_diagonal();
-  restored_data.diagonal(-1) = result.get_side_diagonal();
-  restored_data = backtrace * restored_data * backtrace.transpose();
-
-  if (!are_indistinguishable(data, restored_data, size)) {
+  DynamicMatrix restored_data = backtrace * data * backtrace.transpose();
+  if (!are_indistinguishable(old_data, restored_data, size)) {
     process_bad_restore(data, restored_data, test_id);
     return false;
   }
