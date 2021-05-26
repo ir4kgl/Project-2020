@@ -121,7 +121,9 @@ void run_stress_testing() {
     }
   }
 
-  cout << "Passed SchurDecomposition stress testing\n\n";
+  cout << "Passed SchurDecomposition stress testing\n";
+  cout << "Input precision: " << input_precision << "\n";
+  cout << "Result precision: " << result_precision << "\n\n\n";
 }
 
 void measure_time(int matrix_size) {
@@ -142,7 +144,7 @@ void measure_time(int matrix_size) {
       (float)total_time / (number_of_tests - number_of_skipped_tests);
 
   cout << "SchurDecomposition time measurement results with " << matrix_size
-       << "x" << matrix_size << " matrices:\n\n";
+       << "x" << matrix_size << " matrices\n\n";
   cout << "Average time: " << average_time / CLOCKS_PER_SEC << "\n";
   cout << "Partial testing average time : "
        << partial_test_average_time / CLOCKS_PER_SEC << "\n";
