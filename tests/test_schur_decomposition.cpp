@@ -10,6 +10,7 @@ namespace test_schur_decomposition {
 using std::abs;
 using std::cout;
 using std::max;
+using std::min;
 using Algorithm = schur_decomposition::SchurDecomposition<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
@@ -130,18 +131,22 @@ void measure_time(int matrix_size) {
   unsigned long long total_time = 0;
   double average_time;
   unsigned int max_time = 0;
+  unsigned int min_time = -1;
   unsigned long long partial_test_total_time = 0;
   double partial_test_average_time;
   unsigned int partial_test_max_time = 0;
+  unsigned int partial_test_min_time = -1;
 
   for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
     srand(test_id);
     unsigned int time_checker = time_check(matrix_size);
     total_time += time_checker;
     max_time = max(max_time, time_checker);
+    min_time = min(min_time, time_checker);
     if (test_id > number_of_skipped_tests) {
       partial_test_total_time += time_checker;
       partial_test_max_time = max(partial_test_max_time, time_checker);
+      partial_test_min_time = min(partial_test_min_time, time_checker);
     }
   }
 
@@ -157,6 +162,9 @@ void measure_time(int matrix_size) {
   cout << "Max time: " << ((double)max_time) / CLOCKS_PER_SEC << "\n";
   cout << "Partial testing max time : "
        << ((double)partial_test_max_time) / CLOCKS_PER_SEC << "\n";
+  cout << "Min time: " << ((double)min_time) / CLOCKS_PER_SEC << "\n";
+  cout << "Partial testing min time : "
+       << ((double)partial_test_min_time) / CLOCKS_PER_SEC << "\n";
   cout << "Number of total tests: " << number_of_tests << "\n";
   cout << "Number of tests in partial testing: "
        << number_of_tests - number_of_skipped_tests << "\n";
