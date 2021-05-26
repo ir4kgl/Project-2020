@@ -4,6 +4,7 @@
 #include "../eigen/Eigen/Dense"
 #include "../schur_decomposition/givens_rotation.h"
 #include "../schur_decomposition/hessenberg_reduction.h"
+#include "../schur_decomposition/householder_reflection.h"
 
 namespace schur_decomposition {
 
