@@ -1,3 +1,6 @@
+#ifndef _SCHUR_DECOMPOSITION_GIVENS_ROTATION_H
+#define _SCHUR_DECOMPOSITION_GIVENS_ROTATION_H
+
 #include <cmath>
 #include <type_traits>
 
@@ -66,3 +69,5 @@ class GivensRotator {
 };
 
 };  // namespace givens_rotation
+
+#endif

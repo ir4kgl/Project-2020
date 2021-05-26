@@ -1,3 +1,6 @@
+#ifndef _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_H
+#define _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_H
+
 #include "../eigen/Eigen/Dense"
 #include "../schur_decomposition/givens_rotation.h"
 #include "../schur_decomposition/hessenberg_reduction.h"
@@ -151,3 +154,5 @@ class SchurDecomposition {
 };
 
 };  // namespace schur_decomposition
+
+#endif
