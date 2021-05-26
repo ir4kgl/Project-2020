@@ -127,12 +127,13 @@ void run_stress_testing() {
 }
 
 void measure_time(int matrix_size) {
-  unsigned long long total_time;
+  unsigned long long total_time = 0;
   double average_time;
   unsigned int max_time = 0;
-  unsigned long long partial_test_total_time;
+  unsigned long long partial_test_total_time = 0;
   double partial_test_average_time;
   unsigned int partial_test_max_time = 0;
+
   for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
     srand(test_id);
     unsigned int time_checker = time_check(matrix_size);
@@ -145,8 +146,8 @@ void measure_time(int matrix_size) {
   }
 
   average_time = (double)total_time / number_of_tests;
-  partial_test_average_time =
-      (double)total_time / (number_of_tests - number_of_skipped_tests);
+  partial_test_average_time = (double)partial_test_total_time /
+                              (number_of_tests - number_of_skipped_tests);
 
   cout << "SchurDecomposition time measurement results with " << matrix_size
        << "x" << matrix_size << " matrices\n\n";
