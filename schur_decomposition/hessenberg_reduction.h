@@ -1,3 +1,6 @@
+#ifndef _SCHUR_DECOMPOSITION_HESSENBERG_REDUCTION_H
+#define _SCHUR_DECOMPOSITION_HESSENBERG_REDUCTION_H
+
 #include "../eigen/Eigen/Dense"
 #include "../schur_decomposition/householder_reflection.h"
 
@@ -77,3 +80,5 @@ class HessenbergReduction {
 };
 
 }  // namespace hessenberg_reduction
+
+#endif

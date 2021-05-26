@@ -1,3 +1,6 @@
+#ifndef _SCHUR_DECOMPOSITION_HOUSEHOLDER_REFLECTION_H
+#define _SCHUR_DECOMPOSITION_HOUSEHOLDER_REFLECTION_H
+
 #include <cmath>
 #include <type_traits>
 
@@ -45,3 +48,5 @@ class HouseholderReflector {
 };
 
 };  // namespace householder_reflection
+
+#endif

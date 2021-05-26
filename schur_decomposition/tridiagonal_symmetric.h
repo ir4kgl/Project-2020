@@ -1,3 +1,6 @@
+#ifndef _SCHUR_DECOMPOSITION_TRIDIAGONAL_SYMMETRIC_H
+#define _SCHUR_DECOMPOSITION_TRIDIAGONAL_SYMMETRIC_H
+
 #include "../eigen/Eigen/Dense"
 
 namespace tridiagonal_symmetric {
@@ -43,3 +46,5 @@ class TridiagonalSymmetric {
 };
 
 }  // namespace tridiagonal_symmetric
+
+#endif
