@@ -128,26 +128,34 @@ void run_stress_testing() {
 
 void measure_time(int matrix_size) {
   unsigned long long total_time;
-  float average_time;
+  double average_time;
+  unsigned int max_time = 0;
   unsigned long long partial_test_total_time;
-  float partial_test_average_time;
+  double partial_test_average_time;
+  unsigned int partial_test_max_time = 0;
   for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
     srand(test_id);
-    total_time += time_check(matrix_size);
+    unsigned int time_checker = time_check(matrix_size);
+    total_time += time_checker;
+    max_time = max(max_time, time_checker);
     if (test_id > number_of_skipped_tests) {
-      partial_test_total_time += time_check(matrix_size);
+      partial_test_total_time += time_checker;
+      partial_test_max_time = max(partial_test_max_time, time_checker);
     }
   }
 
-  average_time = (float)total_time / number_of_tests;
+  average_time = (double)total_time / number_of_tests;
   partial_test_average_time =
-      (float)total_time / (number_of_tests - number_of_skipped_tests);
+      (double)total_time / (number_of_tests - number_of_skipped_tests);
 
   cout << "SchurDecomposition time measurement results with " << matrix_size
        << "x" << matrix_size << " matrices\n\n";
   cout << "Average time: " << average_time / CLOCKS_PER_SEC << "\n";
   cout << "Partial testing average time : "
        << partial_test_average_time / CLOCKS_PER_SEC << "\n";
+  cout << "Max time: " << ((double)max_time) / CLOCKS_PER_SEC << "\n";
+  cout << "Partial testing max time : "
+       << ((double)partial_test_max_time) / CLOCKS_PER_SEC << "\n";
   cout << "Number of total tests: " << number_of_tests << "\n";
   cout << "Number of tests in partial testing: "
        << number_of_tests - number_of_skipped_tests << "\n";
