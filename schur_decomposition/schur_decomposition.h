@@ -111,7 +111,9 @@ class SchurDecomposition {
   }
 
   bool zero_under_diagonal(int index) {
-    return std::abs((*p_schur_form_)(index, index - 1)) < precision_;
+    return std::abs((*p_schur_form_)(index, index - 1)) <
+           precision_ * (std::abs((*p_schur_form_)(index, index)) +
+                         std::abs((*p_schur_form_)(index - 1, index - 1)));
   }
 
   Vector3 find_matching_column() { return shifted_submatrix3().col(0); }
