@@ -1,3 +1,4 @@
+#include <ctime>
 #include <iostream>
 #include <random>
 
@@ -6,12 +7,16 @@
 
 namespace test_schur_decomposition {
 
+using std::abs;
 using std::cout;
+using std::max;
 using Algorithm = schur_decomposition::SchurDecomposition<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
-constexpr const long double precision = 1e-12;
-constexpr const int number_of_tests = 30;
+constexpr const long double input_precision = 1e-10;
+constexpr const long double result_precision = 1e-9;
+constexpr const int number_of_tests = 100;
+constexpr const int number_of_skipped_tests = 25;
 constexpr const int matrix_size_max = 128;
 
 void process_triangular_check_failed(const DynamicMatrix& data,
@@ -43,19 +48,28 @@ void process_bad_restore(const DynamicMatrix& old_data,
 }
 
 bool is_hessenberg_form(const DynamicMatrix& result, int size) {
-  return result.block(1, 0, size - 1, size - 1).isUpperTriangular(precision);
+  return result.block(1, 0, size - 1, size - 1)
+      .isUpperTriangular(result_precision);
 }
 
-bool near_zero(double val) { return abs(val) < precision; }
+bool near_zero(double val) { return abs(val) < result_precision; }
+
+double norm(const DynamicMatrix& data, int size) {
+  double max_element = 0.;
+  for (int i = 0; i < size; ++i) {
+    for (int j = 0; j < size; ++j)
+      max_element = max(abs(data(i, j)), max_element);
+  }
+  return max_element;
+}
 
 bool are_indistinguishable(const DynamicMatrix& first,
                            const DynamicMatrix& second, int size) {
-  return ((first - second).norm() < precision * size * size);
+  return (norm(first - second, size) < result_precision);
 }
 
 bool is_quasi_triangular(const DynamicMatrix& result, int size) {
   if (!is_hessenberg_form(result, size)) return false;
-
   for (int j = 1; j < size - 1; ++j) {
     if (!near_zero(result(j + 1, j) && !near_zero(result(j, j - 1)))) {
       return false;
@@ -68,31 +82,37 @@ bool simple_check(int size, int test_id) {
   DynamicMatrix data = DynamicMatrix::Random(size, size);
   DynamicMatrix result;
   DynamicMatrix backtrace;
-
-  Algorithm algorithm(precision);
+  Algorithm algorithm(input_precision);
   algorithm.run(data, &result, &backtrace);
-
   if (!is_quasi_triangular(result, size)) {
     process_triangular_check_failed(data, result, test_id);
     return false;
   }
-
   if (!backtrace.isUnitary()) {
     process_unitary_check_failed(data, backtrace, test_id);
     return false;
   }
-
   DynamicMatrix restored_data = backtrace * result * backtrace.transpose();
   if (!are_indistinguishable(data, restored_data, size)) {
     process_bad_restore(data, restored_data, test_id,
                         (data - restored_data).norm());
     return false;
   }
-
   return true;
 }
 
-void run() {
+unsigned int time_check(int size) {
+  DynamicMatrix data = DynamicMatrix::Random(size, size);
+  DynamicMatrix result;
+  DynamicMatrix backtrace;
+  Algorithm algorithm(input_precision);
+  unsigned int start_time = clock();
+  algorithm.run(data, &result, &backtrace);
+  unsigned int end_time = clock();
+  return end_time - start_time;
+}
+
+void run_stress_testing() {
   for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
     for (int size = 1; size <= matrix_size_max; size *= 2) {
       srand(test_id);
@@ -101,7 +121,40 @@ void run() {
     }
   }
 
-  cout << "Passed all SchurDecomposition tests\n";
+  cout << "Passed SchurDecomposition stress testing\n\n";
+}
+
+void measure_time(int matrix_size) {
+  unsigned long long total_time;
+  unsigned long long average_time;
+  unsigned long long partial_test_total_time;
+  unsigned long long partial_test_average_time;
+  for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
+    srand(test_id);
+    total_time += time_check(matrix_size);
+    if (test_id > number_of_skipped_tests) {
+      partial_test_total_time += time_check(matrix_size);
+    }
+  }
+  average_time = total_time / number_of_tests;
+  partial_test_average_time =
+      total_time / (number_of_tests - number_of_skipped_tests);
+
+  cout << "SchurDecomposition time measurement results with " << matrix_size
+       << "x" << matrix_size << " matrices:\n\n";
+  cout << "Average time: " << ((float)average_time) / CLOCKS_PER_SEC << "\n";
+  cout << "Partial testing average time : "
+       << ((float)partial_test_average_time) / CLOCKS_PER_SEC << "\n";
+  cout << "Number of total tests: " << number_of_tests << "\n";
+  cout << "Number of tests in partial testing: "
+       << number_of_tests - number_of_skipped_tests << "\n";
+}
+
+void run() {
+  cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+  run_stress_testing();
+  measure_time(50);
+  cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
 }
 
 }  // namespace test_schur_decomposition
