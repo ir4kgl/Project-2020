@@ -5,7 +5,6 @@
 #include <random>
 
 #include "../eigen/Eigen/Dense"
-#include "../eigen/Eigen/Eigenvalues"
 #include "../schur_decomposition/schur_decomposition.h"
 
 namespace test_schur_decomposition {
@@ -19,36 +18,41 @@ using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double input_precision = 1e-12;
 constexpr const long double result_precision = 1e-11;
-constexpr const int number_of_tests = 100;
-constexpr const int number_of_skipped_tests = 25;
+constexpr const int number_of_tests = 200;
+constexpr const int number_of_skipped_tests = 50;
 constexpr const int matrix_size_max = 100;
 
 void process_triangular_check_failed(const DynamicMatrix& data,
-                                     const DynamicMatrix& result, int test_id) {
+                                     const DynamicMatrix& result, int test_id,
+                                     int size) {
   cout << "test failed in SchurDecomposition::run():\n\n";
   cout << "input: M =\n" << data << "\n\n";
   cout << "expected Schur form is quasi upper triangular matrix;\n\n";
   cout << "calculated Schur form:\n" << result << "\n\n";
+  cout << "size:\t" << size << "\n";
   cout << "test id:\t" << test_id << "\n";
 }
 
 void process_unitary_check_failed(const DynamicMatrix& data,
-                                  const DynamicMatrix& unitary, int test_id) {
+                                  const DynamicMatrix& unitary, int test_id,
+                                  int size) {
   cout << "test failed in SchurDecomposition::run():\n\n";
   cout << "input: M =\n" << data << "\n\n";
   cout << "expected unitary matrix;\n\n";
   cout << "calculated:\n" << unitary << "\n\n";
+  cout << "size:\t" << size << "\n";
   cout << "test id:\t" << test_id << "\n";
 }
 
 void process_bad_restore(const DynamicMatrix& old_data,
                          const DynamicMatrix& restored_data, int test_id,
-                         double delta) {
+                         double delta, int size) {
   cout << "test failed in SchurDecomposition::run(), wrong restore:\n\n";
   cout << "input: M =\n" << old_data << "\n\n";
   cout << "restored: M =\n" << restored_data << "\n\n";
   cout << "delta = " << delta << "\n";
-  cout << "test id: " << test_id << "\n";
+  cout << "size:\t" << size << "\n";
+  cout << "test id:\t" << test_id << "\n";
 }
 
 bool is_hessenberg_form(const DynamicMatrix& result, int size) {
@@ -89,17 +93,17 @@ bool simple_check(int size, int test_id) {
   Algorithm algorithm(input_precision);
   algorithm.run(data, &result, &backtrace);
   if (!is_quasi_triangular(result, size)) {
-    process_triangular_check_failed(data, result, test_id);
+    process_triangular_check_failed(data, result, test_id, size);
     return false;
   }
   if (!backtrace.isUnitary()) {
-    process_unitary_check_failed(data, backtrace, test_id);
+    process_unitary_check_failed(data, backtrace, test_id, size);
     return false;
   }
   DynamicMatrix restored_data = backtrace * result * backtrace.transpose();
   if (!are_indistinguishable(data, restored_data, size)) {
     process_bad_restore(data, restored_data, test_id,
-                        norm(data - restored_data, size));
+                        norm(data - restored_data, size), size);
     return false;
   }
   return true;
