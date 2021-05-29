@@ -11,7 +11,6 @@ using std::max;
 using Algorithm = hessenberg_reduction::HessenbergReduction<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 
-constexpr const long double input_precision = 1e-12;
 constexpr const long double result_precision = 1e-11;
 constexpr const int number_of_tests = 200;
 constexpr const int number_of_skipped_tests = 50;
@@ -98,10 +97,9 @@ void run_stress_testing() {
     }
   }
 
-  cout << "Passed SchurDecomposition stress testing\n";
+  cout << "Passed HessenbergReduction stress testing\n";
   cout << "Number of tests: " << number_of_tests << "\n";
   cout << "Maximum matrix size: " << matrix_size_max << "\n";
-  cout << "Input precision: " << input_precision << "\n";
   cout << "Result precision: " << result_precision << "\n\n\n";
 }
 
