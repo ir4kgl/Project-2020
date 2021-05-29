@@ -15,9 +15,7 @@ class SchurDecomposition {
 
  public:
   using HessenbergReduction = hessenberg_reduction::HessenbergReduction<Scalar>;
-  using Rotator = givens_rotation::GivensRotator<Scalar>;
-  using Reflector = HessenbergReduction::HouseholderReflector;
-
+  using HouseholderReflector = HessenbergReduction::HouseholderReflector;
   using DynamicMatrix = HessenbergReduction::DynamicMatrix;
   using DynamicVector = HessenbergReduction::DynamicVector;
   using DynamicBlock = Eigen::Block<DynamicMatrix>;
@@ -63,7 +61,8 @@ class SchurDecomposition {
   }
 
   void set_matching_column() {
-    Reflector reflector = Reflector(find_matching_column());
+    HouseholderReflector reflector =
+        HouseholderReflector(find_matching_column());
     update_schur_form(reflector, -1, 3);
     update_unitary(reflector, -1, 3);
   }
@@ -71,11 +70,13 @@ class SchurDecomposition {
   void restore_hessenberg_form() {
     int step = 0;
     for (; step <= cur_size_ - 3; ++step) {
-      Reflector reflector = Reflector(get_reflected_column(step, 3));
+      HouseholderReflector reflector =
+          HouseholderReflector(get_reflected_column(step, 3));
       update_schur_form(reflector, step, 3);
       update_unitary(reflector, step, 3);
     }
-    Reflector reflector = Reflector(get_reflected_column(step, 2));
+    HouseholderReflector reflector =
+        HouseholderReflector(get_reflected_column(step, 2));
     update_schur_form(reflector, step, 2);
     update_unitary(reflector, step, 2);
   }
@@ -84,14 +85,16 @@ class SchurDecomposition {
     return p_schur_form_->block(step + 1, step, rows, 1);
   }
 
-  void update_schur_form(const Reflector& reflector, int step, int length) {
+  void update_schur_form(const HouseholderReflector& reflector, int step,
+                         int length) {
     reflector.reflect_left(p_schur_form_->block(
         step + 1, std::max(step, 0), length, size() - std::max(step, 0)));
     reflector.reflect_right(p_schur_form_->block(
         0, step + 1, std::min(cur_size_, step + 4) + 1, length));
   }
 
-  void update_unitary(const Reflector& reflector, int step, int length) {
+  void update_unitary(const HouseholderReflector& reflector, int step,
+                      int length) {
     reflector.reflect_right(p_unitary_->block(0, step + 1, size(), length));
   }
 
