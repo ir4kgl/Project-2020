@@ -29,7 +29,7 @@ class GivensRotator {
  public:
   using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
   using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
-  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+  using DynamicBlock = Eigen::Block<DynamicMatrix>;
 
   GivensRotator() = default;
   GivensRotator(Scalar x, Scalar y) {

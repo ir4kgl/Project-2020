@@ -16,7 +16,7 @@ class HouseholderReflector {
  public:
   using DynamicMatrix = Eigen::Matrix<Scalar, -1, -1>;
   using DynamicVector = Eigen::Matrix<Scalar, -1, 1>;
-  using DynamicBlock = Eigen::Block<Eigen::Matrix<Scalar, -1, -1>>;
+  using DynamicBlock = Eigen::Block<DynamicMatrix>;
 
   HouseholderReflector() = default;
 
