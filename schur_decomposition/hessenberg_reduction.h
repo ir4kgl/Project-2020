@@ -2,7 +2,7 @@
 #define _SCHUR_DECOMPOSITION_HESSENBERG_REDUCTION_H
 
 #include "../eigen/Eigen/Dense"
-#include "../schur_decomposition/householder_reflection.h"
+#include "householder_reflection.h"
 
 namespace hessenberg_reduction {
 
