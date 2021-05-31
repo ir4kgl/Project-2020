@@ -63,8 +63,8 @@ bool simple_check_right(int size, int test_id) {
 }
 
 void run_stress_testing() {
-  for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
-    for (int size = 1; size <= matrix_size_max; ++size) {
+  for (int size = 1; size <= matrix_size_max; ++size) {
+    for (int test_id = 1; test_id <= number_of_tests; ++test_id) {
       srand(test_id);
       if (!simple_check_left(size, test_id)) return;
       if (!simple_check_right(size, test_id)) return;
