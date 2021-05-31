@@ -41,7 +41,8 @@ class GivensRotator {
     assert(out);
     DynamicMatrix& old = *out;
     assert(old.rows() == 2);
-    old = rotary_matrix_.transpose() * old;
+    Matrix2 tmp = rotary_matrix_.transpose();
+    old = tmp * old;
   }
 
   void rotate_right(DynamicMatrix* out) const {
@@ -53,7 +54,8 @@ class GivensRotator {
 
   void rotate_left(DynamicBlock old) const {
     assert(old.rows() == 2);
-    old = rotary_matrix_.transpose() * old;
+    Matrix2 tmp = rotary_matrix_.transpose();
+    old = tmp * old;
   }
 
   void rotate_right(DynamicBlock old) const {
