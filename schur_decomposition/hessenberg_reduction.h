@@ -42,7 +42,7 @@ class HessenbergReduction {
 
   void update_hessenberg_form(int block_size,
                               const HouseholderReflector& reflector) {
-    DynamicVector first = reflector.direction();
+    const DynamicVector& first = reflector.direction();
     DynamicVector second =
         p_hessenberg_form_->bottomRightCorner(data_size(), block_size) * first;
     second.tail(block_size) -=
