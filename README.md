@@ -38,5 +38,5 @@ cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUI
 *Шаг 3.* Сборка с использованием CMake:
 
 ``
-cmake --build ./build --config --target all -j 10 --
+cmake --build ./build --config Release --target all -j 10 --
 ``
