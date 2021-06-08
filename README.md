@@ -20,17 +20,18 @@
 *Шаг 1.* Добавление библиотеки [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) в рабочий каталог в качестве `Git Submodule`:
 
 ``
-git submodule update --init
+git clone --recurse-submodules
+git submodule update --init --recursive
 ``
 
 *Шаг 2.* Создание конфигурации с использованием CMake:
 
 ``
-cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -H. -B./build -G "Unix Makefiles"
+cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Release -H. -B./build -G "Unix Makefiles"
 ``
 
 *Шаг 3.* Сборка с использованием CMake:
 
 ``
-cmake --build ./build --config Debug --target all -j 10 --
+cmake --build ./build --config --target all -j 10 --
 ``
