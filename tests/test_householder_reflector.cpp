@@ -90,7 +90,7 @@ void run_stress_testing() {
       if (!simple_check_right(size, test_id)) return;
     }
   }
-  cout << "Passed HouseholderReflector  stress testing\n";
+  cout << "Passed HouseholderReflector stress testing\n";
   cout << "Number of tests: " << number_of_tests << "\n";
   cout << "Maximum matrix size: " << matrix_size_max << "\n";
   cout << "Result precision: " << result_precision << "\n\n\n";
