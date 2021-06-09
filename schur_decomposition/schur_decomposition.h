@@ -2,7 +2,6 @@
 #define _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_H
 
 #include "../eigen/Eigen/Dense"
-#include "givens_rotation.h"
 #include "hessenberg_reduction.h"
 #include "householder_reflection.h"
 
@@ -49,6 +48,9 @@ class SchurDecomposition {
 
   void run_QR_algorithm() {
     cur_size_ = size() - 1;
+    if (cur_size_ >= 2) {
+      try_to_deflate();
+    }
     while (cur_size_ >= 2) {
       make_QR_iteration();
       try_to_deflate();
@@ -99,12 +101,15 @@ class SchurDecomposition {
   }
 
   void try_to_deflate() {
-    if (zero_under_diagonal(cur_size_)) {
-      decrement_cur_size(1);
-      return;
-    }
-    if (zero_under_diagonal(cur_size_ - 1)) {
-      decrement_cur_size(2);
+    bool check_deflation = true;
+    while (check_deflation) {
+      if (zero_under_diagonal(cur_size_)) {
+        decrement_cur_size(1);
+      } else if (zero_under_diagonal(cur_size_ - 1)) {
+        decrement_cur_size(2);
+      } else {
+        check_deflation = false;
+      }
     }
   }
 
@@ -119,13 +124,17 @@ class SchurDecomposition {
                          std::abs((*p_schur_form_)(index - 1, index - 1)));
   }
 
-  Vector3 find_matching_column() { return shifted_submatrix3().col(0); }
-
-  Matrix3 shifted_submatrix3() {
+  Vector3 find_matching_column() {
     Scalar trace = find_bottom_corner_trace();
     Scalar det = find_bottom_corner_det();
-    DynamicBlock corner3 = p_schur_form_->topLeftCorner(3, 3);
-    return corner3 * corner3 - trace * corner3 + det * Matrix3::Identity();
+    Vector3 tmp;
+    tmp(0) = (*p_schur_form_)(0, 0) * (*p_schur_form_)(0, 0) +
+             (*p_schur_form_)(0, 1) * (*p_schur_form_)(1, 0) -
+             trace * (*p_schur_form_)(0, 0) + det;
+    tmp(1) = (*p_schur_form_)(1, 0) *
+             ((*p_schur_form_)(0, 0) + (*p_schur_form_)(1, 1) - trace);
+    tmp(2) = (*p_schur_form_)(1, 0) * (*p_schur_form_)(2, 1);
+    return tmp;
   }
 
   Scalar find_bottom_corner_trace() {
