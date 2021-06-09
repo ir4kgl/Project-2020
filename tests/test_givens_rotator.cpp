@@ -15,7 +15,6 @@ using DynamicMatrix = GivensRotator<double>::DynamicMatrix;
 
 constexpr const long double result_precision = 1e-15;
 constexpr const int number_of_tests = 200;
-constexpr const int number_of_skipped_tests = 50;
 constexpr const int matrix_size_max = 100;
 
 void process_left_check_failed(const DynamicMatrix& data,

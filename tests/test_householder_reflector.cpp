@@ -16,7 +16,6 @@ using DynamicBlock = HouseholderReflector<double>::DynamicBlock;
 
 constexpr const long double result_precision = 1e-14;
 constexpr const int number_of_tests = 200;
-constexpr const int number_of_skipped_tests = 50;
 constexpr const int matrix_size_max = 200;
 
 void process_left_check_failed(const DynamicMatrix& data,

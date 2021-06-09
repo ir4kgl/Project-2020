@@ -19,8 +19,7 @@ using DynamicMatrix = Algorithm::DynamicMatrix;
 constexpr const long double input_precision = 1e-12;
 constexpr const long double result_precision = 1e-11;
 constexpr const int number_of_tests = 200;
-constexpr const int number_of_skipped_tests = 50;
-constexpr const int matrix_size_max = 100;
+constexpr const int matrix_size_max = 200;
 
 void process_triangular_check_failed(const DynamicMatrix& data,
                                      const DynamicMatrix& result, int test_id,

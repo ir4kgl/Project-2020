@@ -13,8 +13,7 @@ using DynamicMatrix = Algorithm::DynamicMatrix;
 
 constexpr const long double result_precision = 1e-11;
 constexpr const int number_of_tests = 200;
-constexpr const int number_of_skipped_tests = 50;
-constexpr const int matrix_size_max = 100;
+constexpr const int matrix_size_max = 200;
 
 bool is_hessenberg_form(const DynamicMatrix& data, int size) {
   return data.block(1, 0, size - 1, size - 1)
