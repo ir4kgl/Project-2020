@@ -17,10 +17,10 @@
 
 **Как собрать проект:**
 
-*Шаг 0.* Инициализация и обновление подмодулей
+*Шаг 0.* Клонирование репозитория
 
 ``
-git clone --recurse-submodules
+git clone --recurse-submodules https://github.com/ir4kgl/project-2020/
 ``
 
 *Шаг 1.* Добавление библиотеки [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) в рабочий каталог в качестве `Git Submodule`:
