@@ -1,5 +1,5 @@
-#ifndef _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_H
-#define _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_H
+#ifndef _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_SYMMETRIC_H
+#define _SCHUR_DECOMPOSITION_SCHUR_DECOMPOSITION_SYMMETRIC_H
 
 #include "../eigen/Eigen/Dense"
 #include "../schur_decomposition/givens_rotation.h"
@@ -7,7 +7,7 @@
 #include "../schur_decomposition/householder_reflection.h"
 #include "../schur_decomposition/tridiagonal_symmetric.h"
 
-namespace schur_decomposition {
+namespace schur_decomposition_symmetric {
 
 template <typename Scalar>
 class SchurDecomposition {
@@ -206,6 +206,6 @@ class SchurDecomposition {
   Scalar current_bulge_;
 };
 
-};  // namespace schur_decomposition
+};  // namespace schur_decomposition_symmetric
 
 #endif

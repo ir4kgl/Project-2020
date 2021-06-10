@@ -2,20 +2,19 @@
 #include <random>
 
 #include "../eigen/Eigen/Dense"
-#include "../schur_decomposition/schur_decomposition.h"
+#include "../schur_decomposition/schur_decomposition_symmetric.h"
 
-namespace test_schur_decomposition {
+namespace test_schur_decomposition_symmetric {
 
 using std::cout;
 using std::max;
-using Algorithm = schur_decomposition::SchurDecomposition<double>;
+using Algorithm = schur_decomposition_symmetric::SchurDecomposition<double>;
 using DynamicMatrix = Algorithm::DynamicMatrix;
 using DynamicVector = Algorithm::DynamicVector;
 
 constexpr const double input_precision = 1e-12;
 constexpr const double result_precision = 1e-11;
 constexpr const int number_of_tests = 200;
-constexpr const int number_of_skipped_tests = 50;
 constexpr const int matrix_size_max = 200;
 
 void process_unitary_check_failed(const DynamicMatrix& data,
@@ -95,4 +94,4 @@ void run_stress_testing() {
 
 void run() { run_stress_testing(); }
 
-}  // namespace test_schur_decomposition
+}  // namespace test_schur_decomposition_symmetric
