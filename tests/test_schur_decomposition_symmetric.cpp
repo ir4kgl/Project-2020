@@ -85,7 +85,7 @@ void run_stress_testing() {
     }
   }
 
-  cout << "Passed SchurDecomposition stress testing\n";
+  cout << "Passed SchurDecomposition stress testing (symmetric case)\n";
   cout << "Number of tests: " << number_of_tests << "\n";
   cout << "Maximum matrix size: " << matrix_size_max << "\n";
   cout << "Input precision: " << input_precision << "\n";
